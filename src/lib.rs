@@ -1,9 +1,28 @@
-//! Canvas module documentation goes here
+//! A crate providing basic functionality to display a window with an image constructed by setting pixel values one at a
+//! time. It is intended purely for learning purposes, and in particular for people implementing the example exercises
+//! in Gabriel Gambetta's [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
+//! book. Note that I am not affiliated with Gabriel or his book in any way.
 
 pub mod canvas {
     use minifb::{Key, ScaleMode, Window, WindowOptions};
 
-    /// Canvas *struct* documentation goes here
+    /// A basic wrapper around the `minifb` crate that creates a window with a black background. Individual pixels
+    /// can be set one at a time using `put_pixel`, but changes are not shown until `display` is called. `display` does
+    /// not return until the user exits the program, so no further changes can be made.
+    /// This basic functionality is meant purely as a learning aid.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut my_canvas = Canvas::new("Title for my 800x600 window", 800, 600);
+    ///
+    /// my_canvas.put_pixel(0, 0, Rgb(red: 255, green: 255, blue: 255));
+    /// my_canvas.put_pixel(0, 1, Rgb(red: 255, green: 255, blue: 255));
+    /// my_canvas.put_pixel(1, 0, Rgb(red: 255, green: 255, blue: 255));
+    /// my_canvas.put_pixel(1, 1, Rgb(red: 255, green: 255, blue: 255));
+    ///
+    /// my_canvas.display();
+    /// ```
     #[derive(Debug)]
     pub struct Canvas {
         window: Window,
@@ -13,8 +32,9 @@ pub mod canvas {
     }
 
     impl Canvas {
-
-        /// Documentation for `new`
+        /// Creates a new window with a title of `name` and with the usable area (i.e., excluding window title bar and
+        /// decorations), of the given `width` and `height`. The window is set as non-resizable to avoid the complexity
+        /// of changing the usable canvas area in response to user actions.
         //
         // TODO Should any of the parameters be optional, and have default values if not given?
         // TODO Should name be the last parameter, as it is the most likely to be optional?
@@ -27,7 +47,6 @@ pub mod canvas {
         //               behavior when the two don't match? (Only relevant if change to `resize: true`.)
         //               The API docs say the buffer needs to be at least as big as the window, but provide no further
         //               info.
-
         pub fn new (name: &str, width: usize, height: usize) -> Self {
             let mut window = Window::new(
                 name,
@@ -41,7 +60,7 @@ pub mod canvas {
             )
             .expect("Window creation failed");
 
-            // Limit frame rate to a maximum of 50 frames per second
+            // Limit frame rate to a maximum of 50 frames per second to reduce CPU usage
             window.limit_update_rate(Some(std::time::Duration::from_micros(20_000)));
 
             let mut buffer: Vec<u32> = Vec::with_capacity(width * height);
@@ -76,11 +95,10 @@ pub mod canvas {
         }
 
 
-        ///  Update the window with the current canvas, making all `put_pixel` updates made since the last call to
-        ///  `display` visible. Also checks if the user has requested the window to close or is pressing the escape key,
-        ///  and exits the program if so.
+        ///  Updates the window with all pixels set using `put_pixel` and displays this by looping continuously until
+        ///  the window closes or the user presses the escape key. This function does not return until either event
+        ///  occurs, which means this function can only be called once in a program.
         pub fn display(&mut self) {
-
             // The unwrap causes the code to exit if the update fails
             while self.window.is_open() && !self.window.is_key_down(Key::Escape) {
                 self.window
@@ -90,7 +108,14 @@ pub mod canvas {
         }
     }
 
-    /// TODO Rgb docs
+
+    /// An RGB color expressed as red, green and blue components ranging in value from 0 to 255.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///     let purple = Rgb {red: 255, green: 0, blue: 255};
+    /// ```
     #[derive(Clone, Copy, Debug)]
     pub struct Rgb {
         pub red: u8,
