@@ -9,7 +9,7 @@ fn main() {
 
     let white = Rgb {red: 255, green: 255, blue: 255};
     let red = Rgb {red: 255, green: 0, blue: 0};
-    let yellow = Rgb {red: 255, green: 255, blue: 0};
+    let green = Rgb {red: 0, green: 255, blue: 0};
     let purple = Rgb {red: 255, green: 0, blue: 255};
 
     my_canvas.put_pixel(100, 10, &white);
@@ -25,12 +25,12 @@ fn main() {
     my_canvas.put_pixel(100, 22, &red);
     my_canvas.put_pixel(101, 22, &red);
 
-    my_canvas.put_pixel(120, 10, &yellow);
-    my_canvas.put_pixel(121, 10, &yellow);
-    my_canvas.put_pixel(120, 11, &yellow);
-    my_canvas.put_pixel(121, 11, &yellow);
-    my_canvas.put_pixel(120, 12, &yellow);
-    my_canvas.put_pixel(121, 12, &yellow);
+    my_canvas.put_pixel(120, 10, &green);
+    my_canvas.put_pixel(121, 10, &green);
+    my_canvas.put_pixel(120, 11, &green);
+    my_canvas.put_pixel(121, 11, &green);
+    my_canvas.put_pixel(120, 12, &green);
+    my_canvas.put_pixel(121, 12, &green);
     my_canvas.put_pixel(120, 20, &purple);
     my_canvas.put_pixel(121, 20, &purple);
     my_canvas.put_pixel(120, 21, &purple);
