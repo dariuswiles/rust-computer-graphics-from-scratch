@@ -1,4 +1,5 @@
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
+mod vector_math;
 
 const WIDTH: usize = 1000;
 const HEIGHT: usize = 600;
@@ -40,7 +41,7 @@ fn main() {
 
 //     my_canvas.display_until_exit();
 
-use rust_computer_graphics_from_scratch::vector_math::{Vector3, tmp};
+use vector_math::{Vector3, tmp};
     tmp();
 
 }
