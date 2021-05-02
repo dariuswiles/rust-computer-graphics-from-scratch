@@ -39,9 +39,11 @@ fn main() {
     my_canvas.put_pixel(120, 22, &purple);
     my_canvas.put_pixel(121, 22, &purple);
 
-//     my_canvas.display_until_exit();
+    my_canvas.display_until_exit();
 
-use vector_math::{Vector3, tmp};
-    tmp();
-
+    {
+        #[allow(unused_imports)]
+        use vector_math::{Matrix3x3, Vector3, run_tests};
+        run_tests();
+    }
 }
