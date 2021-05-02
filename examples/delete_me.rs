@@ -38,5 +38,9 @@ fn main() {
     my_canvas.put_pixel(120, 22, &purple);
     my_canvas.put_pixel(121, 22, &purple);
 
-    my_canvas.display_until_exit();
+//     my_canvas.display_until_exit();
+
+use rust_computer_graphics_from_scratch::vector_math::{Vector3, tmp};
+    tmp();
+
 }
