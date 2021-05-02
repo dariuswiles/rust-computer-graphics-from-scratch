@@ -1,35 +1,43 @@
+/// A basic implementation of vectors, matrices and minimal math operations implemented as a learning exercise.
+/// You are strongly advised to use an established linear algebra library such as `nalgebra` or `cgmath` in
+/// preference to this amateur attempt.
+
 #[derive(Clone, Copy, Debug)]
 pub struct Vector3 {
-    data: [f32; 3],
+    x: f32,
+    y: f32,
+    z: f32
 }
 
 impl Vector3 {
-    pub fn new(v0: f32, v1: f32, v2: f32) -> Self {
-        Self {data: [v0, v1, v2]}
+    /// Create a new 3-D vector from the three values passed in.
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self {x: x, y: y, z: z}
     }
 
-    /// Multiply by a scalar
+    /// Multiply by a scalar.
     pub fn multiply_by(&self, s: f32) -> Self {
-        Self {data: [self.data[0] * s, self.data[1] * s, self.data[2] * s]}
+        Self {x: self.x * s, y: self.y * s, z: self.z * s}
     }
 
-    /// Divide by a scalar
+    /// Divide by a scalar.
     pub fn divide_by(&self, s: f32) -> Self {
-        Self {data: [self.data[0] / s, self.data[1] / s, self.data[2] / s]}
+        Self {x: self.x / s, y: self.y / s, z: self.z / s}
     }
 
-    /// Add two `Vector3`s
+    /// Add two `Vector3`s.
     pub fn add(&self, v: &Vector3) -> Self {
-        Self {data: [self.data[0] + v.data[0], self.data[1] + v.data[1], self.data[2] + v.data[2]]}
+        Self {x: self.x + v.x, y: self.y + v.y, z: self.z + v.z}
     }
 
-    /// Subtract the passed `Vector3` from this one
+    /// Subtract the passed `Vector3` from this one.
     pub fn subtract(&self, v: &Vector3) -> Self {
-        Self {data: [self.data[0] - v.data[0], self.data[1] - v.data[1], self.data[2] - v.data[2]]}
+        Self {x: self.x - v.x, y: self.y - v.y, z: self.z - v.z}
     }
 
+    /// Calculate the dot product of this vector and the one passed as the parameter.
     pub fn dot(&self, v: &Vector3) -> f32 {
-        self.data[0] * v.data[0] + self.data[1] * v.data[1] + self.data[2] * v.data[2]
+        self.x * v.x + self.y * v.y + self.z * v.z
     }
 }
 
