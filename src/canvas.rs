@@ -6,8 +6,8 @@
 use minifb::{Key, ScaleMode, Window, WindowOptions};
 
 /// A basic wrapper around the `minifb` crate that creates a window with a black background. Individual pixels
-/// can be set one at a time using `put_pixel`, but changes are not shown until `display` is called. `display` does
-/// not return until the user exits the program, so no further changes can be made.
+/// can be set one at a time using `put_pixel`, but changes are not shown until `display_until_exit` is called.
+/// `display_until_exit` does not return until the user exits the program, so no further changes can be made.
 /// This basic functionality is meant purely as a learning aid.
 ///
 /// # Examples
@@ -22,7 +22,7 @@ use minifb::{Key, ScaleMode, Window, WindowOptions};
 /// my_canvas.put_pixel(1, 0, Rgb(red: 255, green: 255, blue: 255));
 /// my_canvas.put_pixel(1, 1, Rgb(red: 255, green: 255, blue: 255));
 ///
-/// my_canvas.display();
+/// my_canvas.display_until_exit();
 /// ```
 #[derive(Debug)]
 pub struct Canvas {
@@ -76,7 +76,7 @@ impl Canvas {
     /// `y` is the vertical component, ranging from `-height/2` at the bottom to `height/2 - 1` at the top.
     /// If either `x` or `y` is outside these ranges, the function returns without setting a pixel.
     /// The pixel `color` is an [`Rgb` struct](struct.Rgb.html) defining red, green and blue components.
-    /// Changes will only become visible the next time [`display`](#method.display) is called.
+    /// Changes will only become visible when [`display_until_exit`](#method.display_until_exit) is called.
     pub fn put_pixel (&mut self, x: i32, y: i32, color: &Rgb) {
         let (width, height) = (self.width as i32, self.height as i32);
 
@@ -99,7 +99,7 @@ impl Canvas {
     ///  Updates the window with all pixels set using `put_pixel` and displays this by looping continuously until
     ///  the window closes or the user presses the escape key. This function does not return until either event
     ///  occurs, which means this function can only be called once in a program.
-    pub fn display(&mut self) {
+    pub fn display_until_exit(&mut self) {
         // The unwrap causes the code to exit if the update fails
         while self.window.is_open() && !self.window.is_key_down(Key::Escape) {
             self.window

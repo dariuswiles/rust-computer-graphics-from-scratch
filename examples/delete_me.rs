@@ -38,5 +38,5 @@ fn main() {
     my_canvas.put_pixel(120, 22, &purple);
     my_canvas.put_pixel(121, 22, &purple);
 
-    my_canvas.display();
+    my_canvas.display_until_exit();
 }
