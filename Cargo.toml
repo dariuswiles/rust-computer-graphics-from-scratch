@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Darius Wiles <github@dariuswiles.com>"]
 edition = "2018"
 
+[lib]
+crate-type = ["lib"]
+
 [dependencies]
 minifb = "0.19.3"
 
