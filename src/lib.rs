@@ -14,16 +14,19 @@ pub mod canvas {
     /// # Examples
     ///
     /// ```
+    /// # use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
+    /// # fn main() {
     /// // Display four white pixels in the center of the window
     ///
     /// let mut my_canvas = Canvas::new("Title for my 800x600 window", 800, 600);
     ///
-    /// my_canvas.put_pixel(0, 0, Rgb(red: 255, green: 255, blue: 255));
-    /// my_canvas.put_pixel(0, 1, Rgb(red: 255, green: 255, blue: 255));
-    /// my_canvas.put_pixel(1, 0, Rgb(red: 255, green: 255, blue: 255));
-    /// my_canvas.put_pixel(1, 1, Rgb(red: 255, green: 255, blue: 255));
+    /// my_canvas.put_pixel(0, 0, &Rgb{red: 255, green: 255, blue: 255});
+    /// my_canvas.put_pixel(0, 1, &Rgb{red: 255, green: 255, blue: 255});
+    /// my_canvas.put_pixel(1, 0, &Rgb{red: 255, green: 255, blue: 255});
+    /// my_canvas.put_pixel(1, 1, &Rgb{red: 255, green: 255, blue: 255});
     ///
     /// my_canvas.display_until_exit();
+    /// # }
     /// ```
     #[derive(Debug)]
     pub struct Canvas {
@@ -116,7 +119,10 @@ pub mod canvas {
     /// # Examples
     ///
     /// ```
-    ///     let purple = Rgb {red: 255, green: 0, blue: 255};
+    /// # use rust_computer_graphics_from_scratch::canvas::{Rgb};
+    /// # fn main() {
+    /// let purple = Rgb {red: 255, green: 0, blue: 255};
+    /// # }
     /// ```
     #[derive(Clone, Copy, Debug)]
     pub struct Rgb {

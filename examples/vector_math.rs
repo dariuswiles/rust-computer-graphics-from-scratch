@@ -1,7 +1,6 @@
-/// A basic implementation of vectors, matrices and minimal math operations implemented as a learning exercise.
-/// You are strongly advised to use an established linear algebra library such as `nalgebra` or `cgmath` in
-/// preference to this amateur attempt.
-
+//! A basic implementation of vectors, matrices and minimal math operations implemented as a learning exercise.
+//! You are strongly advised to use an established linear algebra library such as `nalgebra` or `cgmath` in
+//! preference to this amateur attempt.
 
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix3x3 {
@@ -37,7 +36,7 @@ impl Matrix3x3 {
 }
 
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vector3 {
     x: f32,
     y: f32,
@@ -107,52 +106,50 @@ impl Vector3 {
 }
 
 
-// TODO Convert all the following into individual tests.
 pub fn run_tests() {
-    let a = Vector3::new(1.0, 2.0, 3.0);
-    println!("a = {:#?}", a);
+    let a = Vector3::new(0.0, 3.0, 4.0);
+    let b = Vector3::new(3.1, 2.2, 1.3);
 
-    let b = a.multiply_by(10.0);
-    println!("a * 10.0 = {:#?}", b);
+    let a_len = a.length();
+    assert_eq!(a_len, 5.0);
 
-    let c = a.divide_by(10.0);
-    println!("a / 10.0 = {:#?}", c);
+    let a_mult_10 = a.multiply_by(10.0);
+    assert_eq!(a_mult_10, Vector3::new(0.0, 30.0, 40.0));
 
-    let d = Vector3::new(3.0, 2.0, 1.0);
-    println!("d = {:#?}", d);
+    let a_div_10 = a.divide_by(10.0);
+    assert_eq!(a_div_10, Vector3::new(0.0, 0.3, 0.4));
 
-    let e = a.add(&d);
-    println!("a + d = {:#?}", e);
+    let a_add_b = a.add(&b);
+    assert_eq!(a_add_b, Vector3::new(3.1, 5.2, 5.3));
 
-    let f = a.subtract(&d);
-    println!("a - d = {:#?}", f);
+    let a_sub_b = a.subtract(&b);
+    assert_eq!(a_sub_b, Vector3::new(-3.1, 0.79999995, 2.7));
 
-    let g = a.dot(&d);
-    println!("a ⋅ d = {:#?}", g);
+    let a_dot_b = a.dot(&b);
+    assert_eq!(a_dot_b, 11.8);
 
+    let c1 = Vector3::new(2.0, 3.0, 4.0);
+    let c2 = Vector3::new(5.0, 6.0, 7.0);
+    let c1_cross_c2 = c1.cross(&c2);
+    assert_eq!(c1_cross_c2, Vector3::new(-3.0, 6.0, -3.0));
 
-    let mut v = Vector3::new(2.0, 3.0, 4.0);
-    let mut w = Vector3::new(5.0, 6.0, 7.0);
-    let mut x = v.cross(&w);
-    println!("v = {:#?}", v);
-    println!("w = {:#?}", w);
-    println!("v × w = {:#?}", x);
+    let d1 = Vector3::new(3.0, -3.0, 1.0);
+    let d2 = Vector3::new(-12.0, 12.0, -4.0);
+    let d1_cross_d2 = d1.cross(&d2);
+    assert_eq!(d1_cross_d2, Vector3::new(0.0, 0.0, 0.0));
 
-    v = Vector3::new(3.0, -3.0, 1.0);
-    w = Vector3::new(-12.0, 12.0, -4.0);
-    x = v.cross(&w);
-    println!("v = {:#?}", v);
-    println!("w = {:#?}", w);
-    println!("v × w = {:#?}", x);
-
-    let h = a.normalize().unwrap();
-    println!("Current length of a is {}", a.length());
-    println!("Normalized a = {:#?}", h);
-    println!("Length of normalized a is {}", h.length());
+    let a_norm = a.normalize().unwrap();
+    assert_eq!(a_norm, Vector3::new(0.0, 0.6, 0.8));
 
 
-    println!("\n\nMatrix math\n");
+    println!("\nMatrix math\n");
 
     let m1 = Matrix3x3::new(1.0, 2.0, 4.0, 3.0, 6.0, 12.0, 4.0, 8.0, 16.0);
     println!("m1 = {:#?}", m1);
+}
+
+/// Run tests for the code in this file.
+fn main() {
+    run_tests();
+    println!("Test run complete");
 }
