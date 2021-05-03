@@ -18,7 +18,7 @@ pub struct Matrix3x3 {
 }
 
 impl Matrix3x3 {
-    /// Create a new 3x3 matrix vector from the nine values passed in. Columns are identified by letters and rows by
+    /// Creates a new 3x3 matrix from the nine values passed in. Columns are identified by letters and rows by
     /// numbers (like spreadsheets).
     pub fn new(
         a1: f32, b1: f32, c1: f32,
@@ -31,6 +31,9 @@ impl Matrix3x3 {
             a3: a3, b3: b3, c3: c3,
         }
     }
+
+    // TODO Define math operations as they are needed by the book.
+
 }
 
 
@@ -42,49 +45,63 @@ pub struct Vector3 {
 }
 
 impl Vector3 {
-    /// Create a new 3-D vector from the three values passed in.
+    /// Creates a new 3D vector from the three values passed in.
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self {x: x, y: y, z: z}
     }
 
-    /// Vector length.
+    /// Returns this vector's length.
     pub fn length(&self) -> f32 {
         f32::sqrt(self.x.powi(2) + self.y.powi(2) + self.z.powi(2))
     }
 
-    /// Multiply by a scalar.
+    /// Multiplies this `Vector3` by a scalar.
     pub fn multiply_by(&self, s: f32) -> Self {
         Self {x: self.x * s, y: self.y * s, z: self.z * s}
     }
 
-    /// Divide by a scalar.
+    /// Divides this `Vector3` by a scalar.
     pub fn divide_by(&self, s: f32) -> Self {
         Self {x: self.x / s, y: self.y / s, z: self.z / s}
     }
 
-    /// Add two `Vector3`s.
+    /// Adds the passed `Vector3` to this one.
     pub fn add(&self, v: &Vector3) -> Self {
         Self {x: self.x + v.x, y: self.y + v.y, z: self.z + v.z}
     }
 
-    /// Subtract the passed `Vector3` from this one.
+    /// Subtracts the passed `Vector3` from this one, i.e., returns `self - v`.
     pub fn subtract(&self, v: &Vector3) -> Self {
         Self {x: self.x - v.x, y: self.y - v.y, z: self.z - v.z}
     }
 
-    /// Calculate the dot product of this vector and the one passed as the parameter.
+    /// Calculates the dot product of this `Vector3` and the one passed as the parameter.
     pub fn dot(&self, v: &Vector3) -> f32 {
         self.x * v.x + self.y * v.y + self.z * v.z
     }
 
-    /// Normalizes the vector, i.e., divides x, y and z by its total length to give a vector that is the same
-    /// direction, but exactly 1 unit in length.
-    pub fn normalize(&mut self) {
+    /// Calculates the cross product of this `Vector3` and the one passed as the parameter, i.e., `self × v`.
+    pub fn cross(&self, v: &Vector3) -> Self {
+        Self {
+            x: self.y * v.z - self.z * v.y,
+            y: self.z * v.x - self.x * v.z,
+            z: self.x * v.y - self.y * v.x,
+        }
+    }
+
+    /// Normalizes this `Vector3` and returns the normalized version as a new `Vector3`. Normalizing means dividing the
+    /// `x`, `y` and `z` components by the `Vector3`'s length, resulting in a `Vector3` that is the same direction, but
+    /// `exactly 1 unit in length. If the `Vector3` is zero length, an error is returned
+    pub fn normalize(&self) -> Result<Self, ()> {
         let length = self.length();
         if length > 0.0 {
-            self.x = self.x / length;
-            self.y = self.y / length;
-            self.z = self.z / length;
+            Result::Ok (Self {
+                x: self.x / length,
+                y: self.y / length,
+                z: self.z / length,
+            })
+        } else {
+            Result::Err(())
         }
     }
 }
@@ -113,11 +130,28 @@ pub fn run_tests() {
     let g = a.dot(&d);
     println!("a ⋅ d = {:#?}", g);
 
-    let mut h = a.clone();
-    println!("Current length of a is {}", h.length());
-    h.normalize();
+
+    let mut v = Vector3::new(2.0, 3.0, 4.0);
+    let mut w = Vector3::new(5.0, 6.0, 7.0);
+    let mut x = v.cross(&w);
+    println!("v = {:#?}", v);
+    println!("w = {:#?}", w);
+    println!("v × w = {:#?}", x);
+
+    v = Vector3::new(3.0, -3.0, 1.0);
+    w = Vector3::new(-12.0, 12.0, -4.0);
+    x = v.cross(&w);
+    println!("v = {:#?}", v);
+    println!("w = {:#?}", w);
+    println!("v × w = {:#?}", x);
+
+    let h = a.normalize().unwrap();
+    println!("Current length of a is {}", a.length());
     println!("Normalized a = {:#?}", h);
-    println!("New length of a is {}", h.length());
+    println!("Length of normalized a is {}", h.length());
+
+
+    println!("\n\nMatrix math\n");
 
     let m1 = Matrix3x3::new(1.0, 2.0, 4.0, 3.0, 6.0, 12.0, 4.0, 8.0, 16.0);
     println!("m1 = {:#?}", m1);
