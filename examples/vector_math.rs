@@ -106,7 +106,7 @@ impl Vector3 {
 }
 
 
-pub fn run_tests() {
+fn run_tests() {
     let a = Vector3::new(0.0, 3.0, 4.0);
     let b = Vector3::new(3.1, 2.2, 1.3);
 

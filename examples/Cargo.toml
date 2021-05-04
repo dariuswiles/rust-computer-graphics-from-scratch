@@ -8,5 +8,6 @@ edition = "2018"
 minifb = "0.19.3"
 rust-computer-graphics-from-scratch = { path = "../../rust-computer-graphics-from-scratch" }
 
-[dev-dependencies]
-assert_approx_eq = "1.1.0"
+# TODO Cannot get this to work
+#[dev-dependencies]
+#assert_approx_eq = "1.1.0"

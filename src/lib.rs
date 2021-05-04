@@ -124,7 +124,7 @@ pub mod canvas {
     /// let purple = Rgb {red: 255, green: 0, blue: 255};
     /// # }
     /// ```
-    #[derive(Clone, Copy, Debug)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
     pub struct Rgb {
         pub red: u8,
         pub green: u8,
