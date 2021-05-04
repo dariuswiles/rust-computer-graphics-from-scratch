@@ -7,21 +7,31 @@ use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
 use crate::vector_math::*;
 mod vector_math;
 
-const CANVAS_WIDTH: usize = 1000;
+const CANVAS_WIDTH: usize = 600;
 const CANVAS_HEIGHT: usize = 600;
 const VIEWPORT_WIDTH: f32 = 1.0;
 const VIEWPORT_HEIGHT: f32 = 1.0;
 const DISTANCE_FROM_CAMERA_TO_VIEWPORT: f32 = 1.0;
 
+#[derive(Clone, Debug)]
+struct Scene {
+    viewport_width: f32,
+    viewport_height: f32,
+    background_color: Rgb,
+    entities: Vec<SceneEntity>,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum SceneEntity {
+    Sphere(SphereEntity),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct Sphere {
+struct SphereEntity {
     center: Vector3,
     radius: f32,
     color: Rgb,
 }
-
-
-
 
 /// Translates a point on the 2D canvas, expressed as `x` and `y` parameters, to a `Vector3` that goes from the
 /// camera to that point.
@@ -34,25 +44,85 @@ fn canvas_to_viewport(x: f32, y: f32) -> Vector3 {
 }
 
 
-fn trace_ray(origin: Vector3, direction: Vector3, t_min: f32, t_max: f32) -> Rgb {
-    let closest_t = f32::INFINITY;
-    let closest_sphere = Option::<usize>::None;
+fn trace_ray(origin: &Vector3, direction: &Vector3, t_min: f32, t_max: f32, scene: &Scene) -> Rgb {
+    let mut closest_t = f32::INFINITY;
+    let mut closest_sphere = Option::<&SphereEntity>::None;
 
-    // TODO main body
-    Rgb {red: 0, green: 0, blue: 0}
+    for scene_ent in scene.entities.iter() {
+        if let SceneEntity::Sphere(s) = scene_ent {
+            let (t1, t2) = intersect_ray_sphere(origin, direction, s);
+            if (t_min < t1) & (t1 < t_max) & (t1 < closest_t) {
+                closest_t = t1;
+                closest_sphere = Some(&s);
+            }
+            if (t_min < t2) & (t2 < t_max) & (t2 < closest_t) {
+                closest_t = t2;
+                closest_sphere = Some(&s);
+            }
+
+        }
+    }
+
+    if let Some(s) = closest_sphere {
+        return s.color;
+    } else {
+        return scene.background_color;
+    }
 }
+
+
+fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity) -> (f32, f32) {
+    let r = s.radius;
+    let center_origin = origin.subtract(&s.center);
+
+    let a = direction.dot(&direction);
+    let b = 2.0 * center_origin.dot(&direction);
+    let c = center_origin.dot(&center_origin) - r*r;
+
+    let discriminant = b*b - 4.0*a*c;
+    if discriminant < 0.0 {
+        return (f32::INFINITY, f32::INFINITY);
+    }
+
+    let t1 = (-b + f32::sqrt(discriminant)) / (2.0*a);
+    let t2 = (-b - f32::sqrt(discriminant)) / (2.0*a);
+    return (t1, t2);
+}
+
+
+/// Creates a scene that includes viewport width and height (expressed in world space coordinates), a default
+/// background color to be used if no pixel value is set, and a vector of objects to display.
+fn create_scene() -> Scene {
+    Scene {
+        viewport_width: VIEWPORT_WIDTH,
+        viewport_height: VIEWPORT_HEIGHT,
+        background_color: Rgb{red: 255, green: 255, blue: 255},     // White
+        entities: vec!(
+            SceneEntity::Sphere(SphereEntity{
+                center: Vector3::new(0.0, -1.0, 3.0),
+                radius: 1.0,
+                color: Rgb{red: 255, green: 0, blue: 0},    // Red
+            }),
+            SceneEntity::Sphere(SphereEntity{
+                center: Vector3::new(2.0, 0.0, 4.0),
+                radius: 1.0,
+                color: Rgb{red: 0, green: 0, blue: 255},    // Blue
+            }),
+            SceneEntity::Sphere(SphereEntity{
+                center: Vector3::new(-2.0, 0.0, 4.0),
+                radius: 1.0,
+                color: Rgb{red: 0, green: 255, blue: 0},    // Green
+            }),
+        ),
+    }
+}
+
 
 
 fn main() {
     let mut canvas = Canvas::new("Raytracer 01 (from chapter 2)", CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // TODO Unsure where to create the scene
-    let scene = vec!(Sphere{
-        center: Vector3::new(0.0, 0.0, 3.0),
-        radius: 1.0,
-        color: Rgb{red: 255, green: 0, blue: 0},
-    });
-
+    let scene = create_scene();
 
     // Define the origin
     let origin = Vector3::new(0.0, 0.0, 0.0);
@@ -63,7 +133,7 @@ fn main() {
     for x in -cw/2 .. cw/2 {
         for y in -ch/2 .. ch/2 {
             let direction = canvas_to_viewport(x as f32, y as f32);
-            let color = trace_ray(origin, direction, 1.0, f32::INFINITY);
+            let color = trace_ray(&origin, &direction, 1.0, f32::INFINITY, &scene);
 
             canvas.put_pixel(x, y, &color);
         }
@@ -71,5 +141,3 @@ fn main() {
 
     canvas.display_until_exit();
 }
-
-
