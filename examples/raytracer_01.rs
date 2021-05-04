@@ -49,6 +49,7 @@ fn trace_ray(origin: &Vector3, direction: &Vector3, t_min: f32, t_max: f32, scen
     let mut closest_sphere = Option::<&SphereEntity>::None;
 
     for scene_ent in scene.entities.iter() {
+        #[allow(irrefutable_let_patterns)] // "If" always true because we `SceneEntity` only defines `Sphere`.
         if let SceneEntity::Sphere(s) = scene_ent {
             let (t1, t2) = intersect_ray_sphere(origin, direction, s);
             if (t_min < t1) & (t1 < t_max) & (t1 < closest_t) {

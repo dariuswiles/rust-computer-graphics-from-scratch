@@ -45,41 +45,49 @@ pub struct Vector3 {
 
 impl Vector3 {
     /// Creates a new 3D vector from the three values passed in.
+    #[allow(dead_code)]
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self {x: x, y: y, z: z}
     }
 
     /// Returns this vector's length.
+    #[allow(dead_code)]
     pub fn length(&self) -> f32 {
         f32::sqrt(self.x.powi(2) + self.y.powi(2) + self.z.powi(2))
     }
 
     /// Multiplies this `Vector3` by a scalar.
+    #[allow(dead_code)]
     pub fn multiply_by(&self, s: f32) -> Self {
         Self {x: self.x * s, y: self.y * s, z: self.z * s}
     }
 
     /// Divides this `Vector3` by a scalar.
+    #[allow(dead_code)]
     pub fn divide_by(&self, s: f32) -> Self {
         Self {x: self.x / s, y: self.y / s, z: self.z / s}
     }
 
     /// Adds the passed `Vector3` to this one.
+    #[allow(dead_code)]
     pub fn add(&self, v: &Vector3) -> Self {
         Self {x: self.x + v.x, y: self.y + v.y, z: self.z + v.z}
     }
 
     /// Subtracts the passed `Vector3` from this one, i.e., returns `self - v`.
+    #[allow(dead_code)]
     pub fn subtract(&self, v: &Vector3) -> Self {
         Self {x: self.x - v.x, y: self.y - v.y, z: self.z - v.z}
     }
 
     /// Calculates the dot product of this `Vector3` and the one passed as the parameter.
+    #[allow(dead_code)]
     pub fn dot(&self, v: &Vector3) -> f32 {
         self.x * v.x + self.y * v.y + self.z * v.z
     }
 
     /// Calculates the cross product of this `Vector3` and the one passed as the parameter, i.e., `self × v`.
+    #[allow(dead_code)]
     pub fn cross(&self, v: &Vector3) -> Self {
         Self {
             x: self.y * v.z - self.z * v.y,
@@ -91,6 +99,7 @@ impl Vector3 {
     /// Normalizes this `Vector3` and returns the normalized version as a new `Vector3`. Normalizing means dividing the
     /// `x`, `y` and `z` components by the `Vector3`'s length, resulting in a `Vector3` that is the same direction, but
     /// `exactly 1 unit in length. If the `Vector3` is zero length, an error is returned
+    #[allow(dead_code)]
     pub fn normalize(&self) -> Result<Self, ()> {
         let length = self.length();
         if length > 0.0 {
@@ -106,6 +115,7 @@ impl Vector3 {
 }
 
 
+#[allow(dead_code)]
 fn run_tests() {
     let a = Vector3::new(0.0, 3.0, 4.0);
     let b = Vector3::new(3.1, 2.2, 1.3);
@@ -149,6 +159,7 @@ fn run_tests() {
 }
 
 /// Run tests for the code in this file.
+#[allow(dead_code)]
 fn main() {
     run_tests();
     println!("Test run complete");
