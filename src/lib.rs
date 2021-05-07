@@ -132,13 +132,13 @@ pub mod canvas {
     }
 
 
-    /// Returns a new Rgb object where `red`, `green` and `blue` components are multiplied by the value passed. All
-    /// components are clamped to a maximum value of 255.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `m` is negative.
     impl Rgb {
+        /// Returns a new Rgb object where `red`, `green` and `blue` components are multiplied by the value passed. All
+        /// components are clamped to a maximum value of 255.
+        ///
+        /// # Panics
+        ///
+        /// Panics if `m` is negative.
         pub fn multiply_by(&self, m: f32) -> Rgb {
             if m < 0.0 {
                 panic!("Rgb cannot be multiplied by a negative value");
@@ -148,6 +148,16 @@ pub mod canvas {
                 red: (self.red as f32 * m) as u8,
                 green: (self.green as f32 * m) as u8,
                 blue: (self.blue as f32 * m) as u8,
+            }
+        }
+
+        /// Returns a new Rgb object where `red`, `green` and `blue` components are added to their counterparts in the
+        /// `Rgb` object passed. All components are clamped to the range 0 to 255 inclusive, so it is safe to add
+        pub fn add(&self, a: &Rgb) -> Rgb {
+            Self {
+                red: self.red.saturating_add(a.red),
+                green: self.green.saturating_add(a.green),
+                blue: self.blue.saturating_add(a.blue),
             }
         }
     }
