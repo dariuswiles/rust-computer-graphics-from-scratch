@@ -11,14 +11,14 @@ mod vector_math;
 
 const CANVAS_WIDTH: usize = 600;
 const CANVAS_HEIGHT: usize = 600;
-const VIEWPORT_WIDTH: f32 = 1.0;
-const VIEWPORT_HEIGHT: f32 = 1.0;
-const DISTANCE_FROM_CAMERA_TO_VIEWPORT: f32 = 1.0;
+const VIEWPORT_WIDTH: f64 = 1.0;
+const VIEWPORT_HEIGHT: f64 = 1.0;
+const DISTANCE_FROM_CAMERA_TO_VIEWPORT: f64 = 1.0;
 
 #[derive(Clone, Debug)]
 struct Scene {
-    viewport_width: f32,
-    viewport_height: f32,
+    viewport_width: f64,
+    viewport_height: f64,
     background_color: Rgb,
     entities: Vec<SceneEntity>,
 }
@@ -38,35 +38,35 @@ enum LightType {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct AmbientLightEntity {
-    intensity: f32,
+    intensity: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct DirectionalLightEntity {
-    intensity: f32,
+    intensity: f64,
     direction: Vector3,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct PointLightEntity {
-    intensity: f32,
+    intensity: f64,
     position: Vector3,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct SphereEntity {
     center: Vector3,
-    radius: f32,
+    radius: f64,
     color: Rgb,
 }
 
 
 /// Translates a point on the 2D canvas, passed in the `x` and `y` parameters, to a `Vector3` that goes from the
 /// camera to that point.
-fn canvas_to_viewport(x: f32, y: f32) -> Vector3 {
+fn canvas_to_viewport(x: f64, y: f64) -> Vector3 {
     Vector3::new(
-        x * VIEWPORT_WIDTH / CANVAS_WIDTH as f32,
-        y * VIEWPORT_HEIGHT / CANVAS_HEIGHT as f32,
+        x * VIEWPORT_WIDTH / CANVAS_WIDTH as f64,
+        y * VIEWPORT_HEIGHT / CANVAS_HEIGHT as f64,
         DISTANCE_FROM_CAMERA_TO_VIEWPORT
     )
 }
@@ -74,7 +74,7 @@ fn canvas_to_viewport(x: f32, y: f32) -> Vector3 {
 /// Given the `position` and `normal` of a surface, loops through all the lights in the scene and determines the
 /// total intensity of them. All lights are white for simplicity, so only a single intensity value is returned
 /// (rather individual RGB values).
-fn compute_lighting(position: &Vector3, normal: &Vector3, scene: &Scene) -> f32 {
+fn compute_lighting(position: &Vector3, normal: &Vector3, scene: &Scene) -> f64 {
     let mut i = 0.0;
 
     for scene_ent in scene.entities.iter() {
@@ -112,8 +112,8 @@ fn compute_lighting(position: &Vector3, normal: &Vector3, scene: &Scene) -> f32 
 /// Returns the color of the closest sphere by extending the `direction` vector provided. Only considers spheres within
 /// the range `t_min` and `t_max`, which are measured in world units. If no sphere intersects `direction`, the
 /// `background_color` specified in the `scene` passed is returned.
-fn trace_ray(origin: &Vector3, direction: &Vector3, t_min: f32, t_max: f32, scene: &Scene) -> Rgb {
-    let mut closest_t = f32::INFINITY;
+fn trace_ray(origin: &Vector3, direction: &Vector3, t_min: f64, t_max: f64, scene: &Scene) -> Rgb {
+    let mut closest_t = f64::INFINITY;
     let mut closest_sphere = Option::<&SphereEntity>::None;
 
     for scene_ent in scene.entities.iter() {
@@ -147,7 +147,7 @@ fn trace_ray(origin: &Vector3, direction: &Vector3, t_min: f32, t_max: f32, scen
 /// origin at which the line intersects the surface of the sphere are returned as a tuple. If the line only intersects
 /// once, the same distance is returned twice in the tuple. If the line does not intersect at all, a tuple with two
 /// elements set to positive infinity is returned.
-fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity) -> (f32, f32) {
+fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity) -> (f64, f64) {
     let r = s.radius;
     let center_origin = origin.subtract(&s.center);
 
@@ -157,11 +157,11 @@ fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity)
 
     let discriminant = b*b - 4.0*a*c;
     if discriminant < 0.0 {
-        return (f32::INFINITY, f32::INFINITY);
+        return (f64::INFINITY, f64::INFINITY);
     }
 
-    let t1 = (-b + f32::sqrt(discriminant)) / (2.0*a);
-    let t2 = (-b - f32::sqrt(discriminant)) / (2.0*a);
+    let t1 = (-b + f64::sqrt(discriminant)) / (2.0*a);
+    let t2 = (-b - f64::sqrt(discriminant)) / (2.0*a);
     return (t1, t2);
 }
 
@@ -225,8 +225,8 @@ fn main() {
 
     for x in -cw/2 .. cw/2 {
         for y in -ch/2 .. ch/2 {
-            let direction = canvas_to_viewport(x as f32, y as f32);
-            let color = trace_ray(&origin, &direction, 1.0, f32::INFINITY, &scene);
+            let direction = canvas_to_viewport(x as f64, y as f64);
+            let color = trace_ray(&origin, &direction, 1.0, f64::INFINITY, &scene);
 
             canvas.put_pixel(x, y, &color);
         }

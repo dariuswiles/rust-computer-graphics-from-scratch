@@ -5,24 +5,24 @@
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix3x3 {
     // Internal representation is row first. Columns are identified by letters and rows by numbers (like spreadsheets).
-    a1: f32,
-    b1: f32,
-    c1: f32,
-    a2: f32,
-    b2: f32,
-    c2: f32,
-    a3: f32,
-    b3: f32,
-    c3: f32
+    a1: f64,
+    b1: f64,
+    c1: f64,
+    a2: f64,
+    b2: f64,
+    c2: f64,
+    a3: f64,
+    b3: f64,
+    c3: f64
 }
 
 impl Matrix3x3 {
     /// Creates a new 3x3 matrix from the nine values passed in. Columns are identified by letters and rows by
     /// numbers (like spreadsheets).
     pub fn new(
-        a1: f32, b1: f32, c1: f32,
-        a2: f32, b2: f32, c2: f32,
-        a3: f32, b3: f32, c3: f32,
+        a1: f64, b1: f64, c1: f64,
+        a2: f64, b2: f64, c2: f64,
+        a3: f64, b3: f64, c3: f64,
     ) -> Self {
         Self {
             a1: a1, b1: b1, c1: c1,
@@ -38,33 +38,33 @@ impl Matrix3x3 {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vector3 {
-    x: f32,
-    y: f32,
-    z: f32
+    x: f64,
+    y: f64,
+    z: f64
 }
 
 impl Vector3 {
     /// Creates a new 3D vector from the three values passed in.
     #[allow(dead_code)]
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self {x: x, y: y, z: z}
     }
 
     /// Returns this vector's length.
     #[allow(dead_code)]
-    pub fn length(&self) -> f32 {
-        f32::sqrt(self.x.powi(2) + self.y.powi(2) + self.z.powi(2))
+    pub fn length(&self) -> f64 {
+        f64::sqrt(self.x.powi(2) + self.y.powi(2) + self.z.powi(2))
     }
 
     /// Multiplies this `Vector3` by a scalar.
     #[allow(dead_code)]
-    pub fn multiply_by(&self, s: f32) -> Self {
+    pub fn multiply_by(&self, s: f64) -> Self {
         Self {x: self.x * s, y: self.y * s, z: self.z * s}
     }
 
     /// Divides this `Vector3` by a scalar.
     #[allow(dead_code)]
-    pub fn divide_by(&self, s: f32) -> Self {
+    pub fn divide_by(&self, s: f64) -> Self {
         Self {x: self.x / s, y: self.y / s, z: self.z / s}
     }
 
@@ -82,7 +82,7 @@ impl Vector3 {
 
     /// Calculates the dot product of this `Vector3` and the one passed as the parameter.
     #[allow(dead_code)]
-    pub fn dot(&self, v: &Vector3) -> f32 {
+    pub fn dot(&self, v: &Vector3) -> f64 {
         self.x * v.x + self.y * v.y + self.z * v.z
     }
 
