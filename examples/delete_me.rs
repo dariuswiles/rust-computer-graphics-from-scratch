@@ -8,10 +8,10 @@ fn main() {
 
     let mut my_canvas = Canvas::new("Window title goes here", WIDTH, HEIGHT);
 
-    let white = Rgb {red: 255, green: 255, blue: 255};
-    let red = Rgb {red: 255, green: 0, blue: 0};
-    let green = Rgb {red: 0, green: 255, blue: 0};
-    let purple = Rgb {red: 255, green: 0, blue: 255};
+    let white = Rgb::from_ints(255, 255, 255);
+    let red = Rgb::from_ints(255, 0, 0);
+    let green = Rgb::from_ints(0, 255, 0);
+    let purple = Rgb::from_ints(255, 0, 255);
 
     my_canvas.put_pixel(100, 10, &white);
     my_canvas.put_pixel(101, 10, &white);

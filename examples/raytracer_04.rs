@@ -217,30 +217,30 @@ fn create_scene() -> Scene {
     Scene {
         viewport_width: VIEWPORT_WIDTH,
         viewport_height: VIEWPORT_HEIGHT,
-        background_color: Rgb{red: 255, green: 255, blue: 255},     // White
+        background_color: Rgb::from_ints(255, 255, 255),     // White
         entities: vec!(
             SceneEntity::Sphere(SphereEntity{
                 center: Vector3::new(0.0, -1.0, 3.0),
                 radius: 1.0,
-                color: Rgb{red: 255, green: 0, blue: 0},    // Red
+                color: Rgb::from_ints(255, 0, 0),    // Red
                 specular: 500,  // Shiny
             }),
             SceneEntity::Sphere(SphereEntity{
                 center: Vector3::new(2.0, 0.0, 4.0),
                 radius: 1.0,
-                color: Rgb{red: 0, green: 0, blue: 255},    // Blue
+                color: Rgb::from_ints(0, 0, 255),    // Blue
                 specular: 500,  // Shiny
             }),
             SceneEntity::Sphere(SphereEntity{
                 center: Vector3::new(-2.0, 0.0, 4.0),
                 radius: 1.0,
-                color: Rgb{red: 0, green: 255, blue: 0},    // Green
+                color: Rgb::from_ints(0, 255, 0),    // Green
                 specular: 10,  // Somewhat shiny
             }),
             SceneEntity::Sphere(SphereEntity{
                 center: Vector3::new(0.0, -5001.0, 0.0),
                 radius: 5000.0,
-                color: Rgb{red: 255, green: 255, blue: 0},  // Yellow
+                color: Rgb::from_ints(255, 255, 0),  // Yellow
                 specular: 1000,  // Very shiny
             }),
             SceneEntity::Light(LightType::Ambient(AmbientLightEntity{
@@ -277,7 +277,7 @@ fn main() {
             let direction = canvas_to_viewport(x as f64, y as f64);
             let color = trace_ray(&origin, &direction, 1.0, f64::INFINITY, &scene);
 
-            canvas.put_pixel(x, y, &color);
+            canvas.put_pixel(x, y, &color.clamp());
         }
     }
 

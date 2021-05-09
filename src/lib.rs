@@ -20,10 +20,10 @@ pub mod canvas {
     ///
     /// let mut my_canvas = Canvas::new("Title for my 800x600 window", 800, 600);
     ///
-    /// my_canvas.put_pixel(0, 0, &Rgb{red: 255, green: 255, blue: 255});
-    /// my_canvas.put_pixel(0, 1, &Rgb{red: 255, green: 255, blue: 255});
-    /// my_canvas.put_pixel(1, 0, &Rgb{red: 255, green: 255, blue: 255});
-    /// my_canvas.put_pixel(1, 1, &Rgb{red: 255, green: 255, blue: 255});
+    /// my_canvas.put_pixel(0, 0, &Rgb::from_ints(255, 255, 255));
+    /// my_canvas.put_pixel(0, 1, &Rgb::from_ints(255, 255, 255));
+    /// my_canvas.put_pixel(1, 0, &Rgb::from_ints(255, 255, 255));
+    /// my_canvas.put_pixel(1, 1, &Rgb::from_ints(255, 255, 255));
     ///
     /// my_canvas.display_until_exit();
     /// # }
@@ -114,51 +114,64 @@ pub mod canvas {
     }
 
 
-    /// An RGB color expressed as red, green and blue components ranging in value from 0 to 255.
+
+
+
+    /// An RGB color expressed as red, green and blue components stored as floats and with no limits on their ranges.
+    /// This is useful during calculations when values may be outside the normal RGB 0-255 range. Use `clamp` to
     ///
     /// # Examples
     ///
     /// ```
     /// # use rust_computer_graphics_from_scratch::canvas::{Rgb};
     /// # fn main() {
-    /// let purple = Rgb {red: 255, green: 0, blue: 255};
+    /// let purple = Rgb {red: 255.0, green: -0.5, blue: 260.606};
+    /// let clamped = purple.clamp();
+    /// assert!(clamped.green == 0.0);
+    /// assert!(clamped.blue == 255.0);
     /// # }
     /// ```
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub struct Rgb {
-        pub red: u8,
-        pub green: u8,
-        pub blue: u8,
+        pub red: f64,
+        pub green: f64,
+        pub blue: f64,
     }
 
-
     impl Rgb {
-        /// Returns a new Rgb object where `red`, `green` and `blue` components are multiplied by the value passed. All
-        /// components are clamped to a maximum value of 255.
-        ///
-        /// # Panics
-        ///
-        /// Panics if `m` is negative.
+        /// Individually multiplies the `red`, `green` and `blue` components by the value passed, and returns a new
+        /// `Rgb` instance with the result.
         pub fn multiply_by(&self, m: f64) -> Rgb {
-            if m < 0.0 {
-                panic!("Rgb cannot be multiplied by a negative value");
-            }
-
             Self {
-                red: (self.red as f64 * m) as u8,
-                green: (self.green as f64 * m) as u8,
-                blue: (self.blue as f64 * m) as u8,
+                red: self.red * m,
+                green: self.green * m,
+                blue: self.blue * m,
             }
         }
 
-        /// Returns a new Rgb object where `red`, `green` and `blue` components are added to their counterparts in the
-        /// `Rgb` object passed. All components are clamped to the range 0 to 255 inclusive, so it is safe to add
+        /// Individually adds the `red`, `green` and `blue` components with the corresponding components of the `Rgb`
+        /// instance passed, , and returns a new `Rgb` instance with the result.
         pub fn add(&self, a: &Rgb) -> Rgb {
             Self {
-                red: self.red.saturating_add(a.red),
-                green: self.green.saturating_add(a.green),
-                blue: self.blue.saturating_add(a.blue),
+                red: self.red + a.red,
+                green: self.green + a.green,
+                blue: self.blue + a.blue,
             }
+        }
+
+        /// Individually clamps the `red`, `green` and `blue` components to the range 0-255. Negative values become 0
+        /// and values greater than 255 become 255.
+        pub fn clamp(&self) -> Rgb {
+            Rgb {
+                red:   f64::min(255.0, f64::max(0.0, self.red)),
+                green: f64::min(255.0, f64::max(0.0, self.green)),
+                blue:  f64::min(255.0, f64::max(0.0, self.blue)),
+            }
+        }
+
+        /// Creates a new `Rgb` instance from the `red`, `green` and `blue` values passed.
+        pub fn from_ints(red: i16, green: i16, blue: i16) -> Rgb {
+            Rgb {red: red as f64, green: green as f64, blue: blue as f64}
         }
     }
 }
