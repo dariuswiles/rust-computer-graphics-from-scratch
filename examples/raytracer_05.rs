@@ -250,7 +250,6 @@ fn create_scene() -> Scene {
         viewport_width: VIEWPORT_WIDTH,
         viewport_height: VIEWPORT_HEIGHT,
         background_color: Rgb::from_ints(0, 0, 0),     // Black
-//         background_color: Rgb::from_ints(red: 255, green: 255, blue: 255),     // White
         entities: vec!(
             SceneEntity::Sphere(SphereEntity{
                 center: Vector3::new(0.0, -1.0, 3.0),
@@ -299,10 +298,6 @@ fn create_scene() -> Scene {
 /// Creates a window and a scene of entities to render. Loops over every pixel in the window canvas to determine the
 /// correct color based on the scene's entities, and then displays the result in the window.
 fn main() {
-
-// println!("reflect_ray returned {:#?}", rr_result2);
-// return;
-
     let mut canvas = Canvas::new("Raytracer 05 (from the second part of chapter 4)", CANVAS_WIDTH, CANVAS_HEIGHT);
 
     let scene = create_scene();
@@ -342,8 +337,3 @@ fn test_reflect_ray_2() {
     let rr_result = reflect_ray(&v3, &v4);
     assert!(rr_result == Vector3::new(3013.406, 241.80202, 1236.41));
 }
-
-
-
-
-
