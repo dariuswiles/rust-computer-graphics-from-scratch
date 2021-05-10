@@ -19,6 +19,7 @@ pub struct Matrix3x3 {
 impl Matrix3x3 {
     /// Creates a new 3x3 matrix from the nine values passed in. Columns are identified by letters and rows by
     /// numbers (like spreadsheets).
+    #[allow(dead_code)]
     pub fn new(
         a1: f64, b1: f64, c1: f64,
         a2: f64, b2: f64, c2: f64,
@@ -30,6 +31,20 @@ impl Matrix3x3 {
             a3: a3, b3: b3, c3: c3,
         }
     }
+
+    /// Multiplies this `Matrix3x3` instance with the `Vector3` passed and returns the result as a new `Vector3`
+    /// instance.
+    #[allow(dead_code)]
+    pub fn multiply_vector(&self, v: &Vector3) -> Vector3 {
+        let row1 = &self.a1 * v.x + &self.b1 * v.y + &self.c1 * v.z;
+        let row2 = &self.a2 * v.x + &self.b2 * v.y + &self.c2 * v.z;
+        let row3 = &self.a3 * v.x + &self.b3 * v.y + &self.c3 * v.z;
+
+        Vector3::new(row1, row2, row3)
+    }
+
+
+
 
     // TODO Define math operations as they are needed by the book.
 
@@ -133,7 +148,7 @@ fn run_tests() {
     assert_eq!(a_add_b, Vector3::new(3.1, 5.2, 5.3));
 
     let a_sub_b = a.subtract(&b);
-    assert_eq!(a_sub_b, Vector3::new(-3.1, 0.79999995, 2.7));
+    assert_eq!(a_sub_b, Vector3::new(-3.1, 0.7999999999999998, 2.7));
 
     let a_dot_b = a.dot(&b);
     assert_eq!(a_dot_b, 11.8);
@@ -152,10 +167,15 @@ fn run_tests() {
     assert_eq!(a_norm, Vector3::new(0.0, 0.6, 0.8));
 
 
-    println!("\nMatrix math\n");
+    // Matrix math tests
 
-    let m1 = Matrix3x3::new(1.0, 2.0, 4.0, 3.0, 6.0, 12.0, 4.0, 8.0, 16.0);
-    println!("m1 = {:#?}", m1);
+    let m1 = Matrix3x3::new(1.0, 2.0,  4.0,
+                            3.0, 6.0, 12.0,
+                            4.0, 8.0, 16.0);
+    let v1 = Vector3::new(3.1, 2.2, 1.3);
+    let m1_multiply_v1 = m1.multiply_vector(&v1);
+    assert_eq!(m1_multiply_v1, Vector3::new(12.7, 38.1, 50.8))
+
 }
 
 /// Run tests for the code in this file.

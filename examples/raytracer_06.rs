@@ -250,7 +250,6 @@ fn create_scene() -> Scene {
         viewport_width: VIEWPORT_WIDTH,
         viewport_height: VIEWPORT_HEIGHT,
         background_color: Rgb::from_ints(0, 0, 0),     // Black
-//         background_color: Rgb::from_ints(red: 255, green: 255, blue: 255),     // White
         entities: vec!(
             SceneEntity::Sphere(SphereEntity{
                 center: Vector3::new(0.0, -1.0, 3.0),
@@ -305,7 +304,7 @@ fn main() {
     let scene = create_scene();
 
     // Define the position and orientation of the camera
-    let camera_position = Vector3::new(0.0, 0.0, 0.0);
+    let camera_position = Vector3::new(3.0, 0.0, 1.0);
 
     let camera_rotation = Matrix3x3::new(
                             0.7071, 0.0, -0.7071,
@@ -318,12 +317,10 @@ fn main() {
 
     for x in -cw/2 .. cw/2 {
         for y in -ch/2 .. ch/2 {
+            let direction = camera_rotation.multiply_vector(&canvas_to_viewport(x as f64, y as f64));
+            let color = trace_ray(&camera_position, &direction, 1.0, f64::INFINITY, RECURSION_LIMIT, &scene);
 
-// TODO Implement matrix multiplication so following calculation can be performed.
-//             let direction = camera_rotation./* matrix multiply */(&canvas_to_viewport(x as f64, y as f64));
-//             let color = trace_ray(&camera_position, &direction, 1.0, f64::INFINITY, RECURSION_LIMIT, &scene);
-
-//             canvas.put_pixel(x, y, &color.clamp());
+            canvas.put_pixel(x, y, &color.clamp());
         }
     }
 
