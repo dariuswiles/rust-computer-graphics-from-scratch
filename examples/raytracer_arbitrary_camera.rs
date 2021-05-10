@@ -1,6 +1,6 @@
 //! Extends the implementation based on the second part of chapter 4 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/) book with the
-//! ability to set an arbitrary position and direction for the camera.
+//! ability to set an arbitrary position and direction for the camera, as discussed in the first part of chapter 5.
 //!
 //! I am not affiliated with Gabriel or his book in any way.
 
@@ -300,22 +300,30 @@ fn create_scene() -> Scene {
 /// correct color based on the scene's entities, and then displays the result in the window.
 fn main() {
 
-    let mut canvas = Canvas::new("Arbitrary camera position", CANVAS_WIDTH, CANVAS_HEIGHT);
+    let mut canvas = Canvas::new("Chapter 5 Arbitrary camera position", CANVAS_WIDTH, CANVAS_HEIGHT);
 
     let scene = create_scene();
 
-    // Define the origin
-    let camera_position = Vector3::new(0.5, 0.5, 0.5);
+    // Define the position and orientation of the camera
+    let camera_position = Vector3::new(0.0, 0.0, 0.0);
+
+    let camera_rotation = Matrix3x3::new(
+                            0.7071, 0.0, -0.7071,
+                            0.0,    1.0,  0.0,
+                            0.7071, 0.0,  0.7071);
+
 
     let cw = CANVAS_WIDTH as i32;
     let ch = CANVAS_HEIGHT as i32;
 
     for x in -cw/2 .. cw/2 {
         for y in -ch/2 .. ch/2 {
-            let direction = canvas_to_viewport(x as f64, y as f64);
-            let color = trace_ray(&camera_position, &direction, 1.0, f64::INFINITY, RECURSION_LIMIT, &scene);
 
-            canvas.put_pixel(x, y, &color.clamp());
+// TODO Implement matrix multiplication so following calculation can be performed.
+//             let direction = camera_rotation./* matrix multiply */(&canvas_to_viewport(x as f64, y as f64));
+//             let color = trace_ray(&camera_position, &direction, 1.0, f64::INFINITY, RECURSION_LIMIT, &scene);
+
+//             canvas.put_pixel(x, y, &color.clamp());
         }
     }
 
