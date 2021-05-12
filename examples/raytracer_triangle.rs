@@ -98,13 +98,13 @@ impl TriangleEntity {
 //         let p = Vector3::new(0.0,0.0,0.0);
 //         let n = Vector3::new(0.0,0.0,0.0);
 
-        let v1 = corners[0].subtract(&corners[1]);
-        let v2 = corners[0].subtract(&corners[2]);
+        let v1 = corners[1].subtract(&corners[0]);
+        let v2 = corners[2].subtract(&corners[0]);
 
         let normal = v1.cross(&v2).normalize().unwrap();
 
-        Self { corners: corners, plane_point: v1, plane_normal: normal, color: color,
-               specular: specular, reflective: reflective }
+        Self { corners: corners, plane_point: corners[0].clone(), plane_normal: normal,
+               color: color, specular: specular, reflective: reflective }
 
     }
 }
@@ -359,13 +359,14 @@ fn main() {
 
     let scene = create_scene();
 
-    let tri1 = TriangleEntity::new([Vector3::new(2.0, 0.0, 2.0), Vector3::new(5.0, 0.0, 2.0), Vector3::new(5.0, 0.0, 6.0)],
+    let tri1 = TriangleEntity::new([Vector3::new(2.0, 2.0, 0.0), Vector3::new(6.0, 2.0, 0.0), Vector3::new(6.0, 5.0, 0.0)],
                                    Rgb::from_ints(0, 255, 0),    // Green
                                    10,  // Somewhat shiny
                                    0.4, // Even more reflective
                                    );
 
-
+    println!("{:#?}", tri1);
+    panic!("Stop");
 
 
 
