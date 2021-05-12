@@ -1,6 +1,7 @@
 //! Extends the implementation based on the second part of chapter 4 of Gabriel Gambetta's
-//! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/) book with the
-//! ability to set an arbitrary position and direction for the camera, as discussed in the first part of chapter 5.
+//! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
+//! book with the ability to set an arbitrary position and direction for the camera, as discussed
+//! in the first part of chapter 5.
 //!
 //! I am not affiliated with Gabriel or his book in any way.
 
@@ -65,8 +66,8 @@ struct SphereEntity {
 }
 
 
-/// Translates a point on the 2D canvas, passed in the `x` and `y` parameters, to a `Vector3` that goes from the
-/// camera to that point.
+/// Translates a point on the 2D canvas, passed in the `x` and `y` parameters, to a `Vector3` that
+/// goes from the camera to that point.
 fn canvas_to_viewport(x: f64, y: f64) -> Vector3 {
     Vector3::new(
         x * VIEWPORT_WIDTH / CANVAS_WIDTH as f64,
@@ -84,9 +85,9 @@ fn reflect_ray(ray: &Vector3, normal: &Vector3) -> Vector3 {
 }
 
 
-/// Given the `position` and `normal` of a surface, loops through all the lights in the scene and determines the
-/// total intensity of them at `position`. All lights are white for simplicity, so only a single intensity value is
-/// returned (rather individual RGB values).
+/// Given the `position` and `normal` of a surface, loops through all the lights in the scene and
+/// determines the total intensity of them at `position`. All lights are white for simplicity, so
+/// only a single intensity value is returned (rather individual RGB values).
 fn compute_lighting(
     position: &Vector3,
     normal: &Vector3,
@@ -116,8 +117,10 @@ fn compute_lighting(
                     t_max = f64::INFINITY;
                 }
 
-                // Shadow check - do not add light from this source if there is a sphere intersecting it
-                let (shadow_sphere, _shadow_t) = closest_intersection(&position, &light_vector, 0.001, t_max, &scene);
+                // Shadow check - do not add light from this source if there is a sphere
+                // intersecting it
+                let (shadow_sphere, _shadow_t) = closest_intersection(&position, &light_vector,
+                                                                      0.001, t_max, &scene);
                 if shadow_sphere != Option::None{
                     continue;
                 }
@@ -125,10 +128,11 @@ fn compute_lighting(
                 // Diffuse lighting calculation
                 let normal_dot_light = normal.dot(&light_vector);
 
-                // `normal_dot_light` is negative if the light is coming from behind the surface, and we ignore such
-                // cases as they would incorrectly reduce light intensity.
+                // `normal_dot_light` is negative if the light is coming from behind the surface,
+                // and we ignore such cases as they would incorrectly reduce light intensity.
                 if normal_dot_light > 0.0 {
-                    i += light_intensity * normal_dot_light/(normal.length() * light_vector.length())
+                    i += light_intensity * normal_dot_light/(normal.length() *
+                                                             light_vector.length())
                 }
 
 
@@ -151,10 +155,12 @@ fn compute_lighting(
 }
 
 
-/// Returns the handle of the closest sphere and the distance of its closest intersection from the `origin` provided.
-/// The intersection is determined by extending the `direction` vector provided from this `origin`. Only intersections
-/// within the range `t_min` and `t_max`, which are measured in world units, are considered. If no sphere intersects,
-/// the sphere handle returned is `Option::None`, and the distance of closest intersection is `f64::INFINITY`.
+/// Returns the handle of the closest sphere and the distance of its closest intersection from the
+/// `origin` provided. The intersection is determined by extending the `direction` vector provided
+/// `from this `origin`. Only intersections within the range `t_min` and `t_max`, which are
+/// `measured in world units, are considered. If no sphere intersects, the sphere handle returned
+/// `is `Option::None`, and the distance of closest intersection is `f64::INFINITY`.
+
 fn closest_intersection<'a>(origin: &Vector3,
                         direction: &Vector3,
                         t_min: f64,
@@ -181,9 +187,10 @@ fn closest_intersection<'a>(origin: &Vector3,
     return (closest_sphere, closest_t);
 }
 
-/// Returns the color of the closest sphere by extending the `direction` vector provided. Only considers spheres within
-/// the range `t_min` and `t_max`, which are measured in world units. If no sphere intersects `direction`, the
-/// `background_color` specified in the `scene` passed is returned.
+/// Returns the color of the closest sphere by extending the `direction` vector provided. Only
+/// considers spheres within the range `t_min` and `t_max`, which are measured in world units. If
+/// no sphere intersects `direction`, the `background_color` specified in the `scene` passed is
+/// returned.
 fn trace_ray(origin: &Vector3,
              direction: &Vector3,
              t_min: f64,
@@ -191,13 +198,17 @@ fn trace_ray(origin: &Vector3,
              recursion_depth: i32,
              scene: &Scene,)
              -> Rgb {
-    let (closest_sphere, closest_t) = closest_intersection(&origin, &direction, t_min, t_max, &scene);
+    let (closest_sphere, closest_t) = closest_intersection(&origin, &direction, t_min, t_max,
+                                                           &scene);
 
     if let Some(s) = closest_sphere {
         let position = origin.add(&direction.multiply_by(closest_t));  // Compute intersection
-        let normal = position.subtract(&s.center);   // Compute normal of sphere at this intersection
-        let normal_norm = normal.normalize().unwrap();  // Panics if light is in same location as sphere surface
-        let intensity = compute_lighting(&position, &normal_norm, &direction.multiply_by(-1.0), s.specular, &scene);
+        let normal = position.subtract(&s.center);  // Compute normal sphere at this intersection
+
+        // BUG Panics if light is in same location as sphere surface
+        let normal_norm = normal.normalize().unwrap();
+        let intensity = compute_lighting(&position, &normal_norm, &direction.multiply_by(-1.0),
+                                         s.specular, &scene);
 
         let local_color = s.color.multiply_by(intensity);
 
@@ -209,9 +220,11 @@ fn trace_ray(origin: &Vector3,
         // Compute the reflected color
         let reflected_ray = reflect_ray(&direction.multiply_by(-1.0), &normal_norm);
 
-        let reflected_color = trace_ray(&position, &reflected_ray, TRACE_EPSILON, f64::INFINITY, recursion_depth - 1, &scene);
+        let reflected_color = trace_ray(&position, &reflected_ray, TRACE_EPSILON, f64::INFINITY,
+                                        recursion_depth - 1, &scene);
 
-        return local_color.multiply_by(1.0 - s.reflective).add(&(&reflected_color).multiply_by(s.reflective));
+        return local_color.multiply_by(1.0 - s.reflective).add(&(&reflected_color)
+                          .multiply_by(s.reflective));
 
 
     } else {
@@ -220,10 +233,11 @@ fn trace_ray(origin: &Vector3,
 }
 
 
-/// Determines if a line drawn from `origin` along `direction` intersects sphere `s`. If so, the distances from the
-/// origin at which the line intersects the surface of the sphere are returned as a tuple. If the line only intersects
-/// once, the same distance is returned twice in the tuple. If the line does not intersect at all, a tuple with two
-/// elements set to positive infinity is returned.
+/// Determines if a line drawn from `origin` along `direction` intersects sphere `s`. If so, the
+/// distances from the origin at which the line intersects the surface of the sphere are returned
+/// as a tuple. If the line only intersects once, the same distance is returned twice in the tuple.
+/// If the line does not intersect at all, a tuple with two elements set to positive infinity is
+/// returned.
 fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity) -> (f64, f64) {
     let r = s.radius;
     let center_origin = origin.subtract(&s.center);
@@ -243,8 +257,9 @@ fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity)
 }
 
 
-/// Creates a scene that includes viewport width and height (expressed in world space coordinates), a default
-/// background color to be used if no other pixel value is set, and a vector of entity objects to display.
+/// Creates a scene that includes viewport width and height (expressed in world space coordinates),
+/// a default background color to be used if no other pixel value is set, and a vector of entity
+/// objects to display.
 fn create_scene() -> Scene {
     Scene {
         viewport_width: VIEWPORT_WIDTH,
@@ -295,11 +310,13 @@ fn create_scene() -> Scene {
 }
 
 
-/// Creates a window and a scene of entities to render. Loops over every pixel in the window canvas to determine the
-/// correct color based on the scene's entities, and then displays the result in the window.
+/// Creates a window and a scene of entities to render. Loops over every pixel in the window canvas
+/// to determine the correct color based on the scene's entities, and then displays the result in
+/// the window.
 fn main() {
 
-    let mut canvas = Canvas::new("Chapter 5 Arbitrary camera position", CANVAS_WIDTH, CANVAS_HEIGHT);
+    let mut canvas = Canvas::new("Chapter 5 Arbitrary camera position", CANVAS_WIDTH,
+                                 CANVAS_HEIGHT);
 
     let scene = create_scene();
 
@@ -317,8 +334,10 @@ fn main() {
 
     for x in -cw/2 .. cw/2 {
         for y in -ch/2 .. ch/2 {
-            let direction = camera_rotation.multiply_vector(&canvas_to_viewport(x as f64, y as f64));
-            let color = trace_ray(&camera_position, &direction, 1.0, f64::INFINITY, RECURSION_LIMIT, &scene);
+            let direction = camera_rotation.multiply_vector(&canvas_to_viewport(x as f64,
+                                                                                y as f64));
+            let color = trace_ray(&camera_position, &direction, 1.0, f64::INFINITY,
+                                  RECURSION_LIMIT, &scene);
 
             canvas.put_pixel(x, y, &color.clamp());
         }
