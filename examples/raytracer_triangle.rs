@@ -144,6 +144,50 @@ fn intersect_line_and_plane(plane_point: &Vector3, normal: &Vector3, line_point:
 }
 
 
+/// Returns `true` if the point `p` is within the triangle `t`, false otherwise. The point and
+/// triangle must be on the same plane, or the result is undefined. This restriction is met if the
+/// point was found using the `intersect_line_and_plane` fn.
+///
+/// # Examples
+/// ```
+/// let t1 = Vector3::new(2.0, 2.0, 1.0);
+/// let t2 = Vector3::new(5.0, 2.0, 1.0);
+/// let t3 = Vector3::new(4.0, 4.0, 1.0);
+///
+/// let p = Vector3::new(4.0, 3.0, 1.0);
+///
+/// assert(is_point_inside_triangle(&p, &t1, &t2, &t3));
+/// ```
+fn is_point_inside_triangle(p: &Vector3, t1: &Vector3, t2: &Vector3, t3: &Vector3) -> bool {
+
+    let v12 = t1.subtract(t2);
+    let v13 = t1.subtract(t3);
+    let v23 = t2.subtract(t3);
+    let v31 = t3.subtract(t1);
+
+    let v1p = t1.subtract(p);
+    let v2p = t2.subtract(p);
+    let v3p = t3.subtract(p);
+
+    let reference = v12.cross(&v13); // Defines an 'up' direction for the triangle
+    let v12_cross_v1p = v12.cross(&v1p);
+    let v23_cross_v2p = v23.cross(&v2p);
+    let v31_cross_v3p = v31.cross(&v3p);
+
+    // The `reference` vector defines an 'up' direction based on the triangle. If the point is
+    // within the triangle, then the cross product of every corner with: the next corner (going
+    // counter-clockwise), and the point, will also be 'up'. The dot product of the `reference`
+    // vector with each cross product determines if this is true.
+    (reference.dot(&v12_cross_v1p) >= 0.0) &
+    (reference.dot(&v23_cross_v2p) >= 0.0) &
+    (reference.dot(&v31_cross_v3p) >= 0.0)
+}
+
+
+
+
+
+
 /// Translates a point on the 2D canvas, passed in the `x` and `y` parameters, to a `Vector3` that
 /// goes from the camera to that point.
 fn canvas_to_viewport(x: f64, y: f64) -> Vector3 {
@@ -385,22 +429,6 @@ fn create_scene() -> Scene {
 /// to determine the correct color based on the scene's entities, and then displays the result in
 /// the window.
 fn main() {
-
-    let plane_point = Vector3::new(0.0, 0.0, 1.0);
-    let plane_normal = Vector3::new(1.0, 0.0, -1.0);
-
-    let line_point = Vector3::new(3.0, 1.0, -2.0);
-    let line_direction = Vector3::new(0.0, 0.0, 1.0);
-
-    let intersect_point = intersect_line_and_plane(&plane_point, &plane_normal, &line_point,
-                                                   &line_direction);
-
-    println!("Line and plane intersect at point {:#?}.", intersect_point);
-    panic!("Stop");
-
-
-
-
 
     let mut canvas = Canvas::new("Chapter 5 Arbitrary camera position", CANVAS_WIDTH,
                                  CANVAS_HEIGHT);
