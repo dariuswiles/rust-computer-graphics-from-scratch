@@ -95,8 +95,6 @@ impl TriangleEntity {
     ///
     /// Panics if the two or three corners are at the same point.
     fn new(corners: [Vector3; 3], color: Rgb, specular: i32, reflective: f64) -> Self {
-//         let p = Vector3::new(0.0,0.0,0.0);
-//         let n = Vector3::new(0.0,0.0,0.0);
 
         let v1 = corners[1].subtract(&corners[0]);
         let v2 = corners[2].subtract(&corners[0]);
@@ -110,6 +108,40 @@ impl TriangleEntity {
 }
 
 
+/// Returns the point of intersection between a `plane` and `line`. The `plane` is expressed as a
+/// point on the plane and the normal to the plane. The `line` is expressed as a point on the line
+/// and the direction of the line. All four parameters use the `Vector3` type.
+///
+/// A `Result::Err` is returned if the line and plane are parallel. This includes the case where
+/// the line is entirely within the plane.
+///
+/// # Examples
+/// ```
+/// let plane_point = Vector3::new(0.0, 0.0, 1.0);
+/// let plane_normal = Vector3::new(1.0, 0.0, -1.0);
+///
+/// let line_point = Vector3::new(3.0, 1.0, -2.0);
+/// let line_direction = Vector3::new(0.0, 0.0, 1.0);
+///
+/// let intersect_point = intersect_line_and_plane(&plane_point, &plane_normal, &line_point,
+///                                                &line_direction);
+///
+/// assert_eq(intersect_point, Vector3::new(3.0, 1.0, 4.0));
+/// ```
+fn intersect_line_and_plane(plane_point: &Vector3, normal: &Vector3, line_point: &Vector3,
+                            direction: &Vector3) -> Result<Vector3, ()> {
+
+    let numerator = plane_point.subtract(line_point).dot(normal);
+    let denominator = direction.dot(normal);
+
+    if denominator == 0.0 {
+        return Result::Err(());
+    } else {
+        let d = numerator / denominator;
+
+        return Result::Ok(direction.multiply_by(d).add(line_point));
+    }
+}
 
 
 /// Translates a point on the 2D canvas, passed in the `x` and `y` parameters, to a `Vector3` that
@@ -353,6 +385,22 @@ fn create_scene() -> Scene {
 /// to determine the correct color based on the scene's entities, and then displays the result in
 /// the window.
 fn main() {
+
+    let plane_point = Vector3::new(0.0, 0.0, 1.0);
+    let plane_normal = Vector3::new(1.0, 0.0, -1.0);
+
+    let line_point = Vector3::new(3.0, 1.0, -2.0);
+    let line_direction = Vector3::new(0.0, 0.0, 1.0);
+
+    let intersect_point = intersect_line_and_plane(&plane_point, &plane_normal, &line_point,
+                                                   &line_direction);
+
+    println!("Line and plane intersect at point {:#?}.", intersect_point);
+    panic!("Stop");
+
+
+
+
 
     let mut canvas = Canvas::new("Chapter 5 Arbitrary camera position", CANVAS_WIDTH,
                                  CANVAS_HEIGHT);
