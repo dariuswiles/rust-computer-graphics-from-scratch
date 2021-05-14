@@ -12,5 +12,6 @@ crate-type = ["lib"]
 minifb = "0.19.3"
 
 [[example]]
-name = "delete_me"
-path = "examples/delete_me.rs"
+name = "raytracer_triangle"
+path = "examples/raytracer_triangle.rs"
+test = true
