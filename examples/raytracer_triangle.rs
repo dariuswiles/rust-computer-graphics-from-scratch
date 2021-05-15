@@ -5,7 +5,6 @@
 //! - triangle entities
 //! as discussed in various sections of chapter 5.
 
-
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
 #[allow(unused_imports)]
 use crate::vector_math::*;
@@ -108,24 +107,29 @@ impl TriangleEntity {
 }
 
 
-/// Returns the point of intersection between a `plane` and `line`. The `plane` is expressed as a
-/// point on the plane and the normal to the plane. The `line` is expressed as a point on the line
-/// and the direction of the line. All four parameters use the `Vector3` type.
+/// Returns the point of intersection between a plane and line, and the distance between this
+/// point and the starting point of the line, i.e., `line_point`. The latter is expressed in the
+/// number of times `line_direction` must be added to the line's starting point, i.e.,
+/// `line_point`, to reach the intersect point.
+///
+/// The plane is expressed as a point on the plane and the normal to the plane. The `line` is
+/// expressed as a point on the line and the direction of the line. All four parameters use the
+/// `Vector3` type.
 ///
 /// A `Result::Err` is returned if the line and plane are parallel. This includes the case where
 /// the line is entirely within the plane.
-fn intersect_line_and_plane(plane_point: &Vector3, normal: &Vector3, line_point: &Vector3,
-                            direction: &Vector3) -> Result<Vector3, ()> {
+fn intersect_line_and_plane(plane_point: &Vector3, plane_normal: &Vector3, line_point: &Vector3,
+                            line_direction: &Vector3) -> Result<(Vector3, f64), ()> {
 
-    let numerator = plane_point.subtract(line_point).dot(normal);
-    let denominator = direction.dot(normal);
+    let numerator = plane_point.subtract(line_point).dot(plane_normal);
+    let denominator = line_direction.dot(plane_normal);
 
     if denominator == 0.0 {
         return Result::Err(());
     } else {
         let d = numerator / denominator;
 
-        return Result::Ok(direction.multiply_by(d).add(line_point));
+        return Result::Ok((line_direction.multiply_by(d).add(line_point), d));
     }
 }
 
@@ -164,14 +168,10 @@ fn is_point_inside_triangle(p: &Vector3, t1: &Vector3, t2: &Vector3, t3: &Vector
     // within the triangle, then the cross product of every corner with: the next corner (going
     // counter-clockwise), and the point, will also be 'up'. The dot product of the `reference`
     // vector with each cross product determines if this is true.
-    (reference.dot(&v12_cross_v1p) >= 0.0) &
-    (reference.dot(&v23_cross_v2p) >= 0.0) &
-    (reference.dot(&v31_cross_v3p) >= 0.0)
+    (reference.dot(&v12_cross_v1p) >= TRACE_EPSILON) &
+    (reference.dot(&v23_cross_v2p) >= TRACE_EPSILON) &
+    (reference.dot(&v31_cross_v3p) >= TRACE_EPSILON)
 }
-
-
-
-
 
 
 /// Translates a point on the 2D canvas, passed in the `x` and `y` parameters, to a `Vector3` that
@@ -298,12 +298,14 @@ fn closest_intersection(origin: &Vector3,
                 let ray_intersect_t = intersect_line_and_plane(&t.plane_point, &t.plane_normal,
                                                                origin, direction);
 
-                if let Ok(tri) = ray_intersect_t {
-                    if is_point_inside_triangle(&tri, &t.corners[0], &t.corners[1],
-                                                &t.corners[2]) {
-                        closest_t = 2.0; // BUG Need to determine correct value for closest_t
-                        closest_entity = Some(SceneEntity::Triangle(*t));
-// print!("Found point inside triangle. ");
+                if let Ok((intersect, distance)) = ray_intersect_t {
+                    if (t_min < distance) & (distance < t_max) & (distance < closest_t) {
+
+                        if is_point_inside_triangle(&intersect, &t.corners[0], &t.corners[1],
+                                                    &t.corners[2]) {
+                            closest_t = distance;
+                            closest_entity = Some(SceneEntity::Triangle(*t));
+                        }
                     }
                 }
             },
@@ -329,19 +331,23 @@ fn trace_ray(origin: &Vector3,
     let (closest_entity, closest_t) = closest_intersection(&origin, &direction, t_min, t_max,
                                                            &scene);
 
-    let mut ray_color = scene.background_color.clone();  // Default, if ray does not intersect an object
+    let mut ray_color = scene.background_color.clone();  // Used if ray doesn't intersect an object
 
     if let Some(e) = closest_entity {
         match e {
             SceneEntity::Sphere(s) => {
-                let position = origin.add(&direction.multiply_by(closest_t));  // Compute intersection
-                let normal = position.subtract(&s.center);   // Compute normal of sphere at this intersection
-                let normal_norm = normal.normalize().unwrap();  // Panics if light is in same location as sphere surface
-                let intensity = compute_lighting(&position, &normal_norm, &direction.multiply_by(-1.0), s.specular, &scene);
+                let position = origin.add(&direction.multiply_by(closest_t));  // Compute intersect
+                let normal = position.subtract(&s.center);   // Compute normal at intersection
+
+                // Panics if light is in same location as sphere surface
+                let normal_norm = normal.normalize().unwrap();
+                let intensity = compute_lighting(&position, &normal_norm,
+                                                 &direction.multiply_by(-1.0), s.specular, &scene);
 
                 let local_color = s.color.multiply_by(intensity);
 
-                // If we reach the recursion limit, or the sphere is not reflective, return the local color
+                // If we reach the recursion limit, or the sphere is not reflective, return the
+                // local color
                 if (s.reflective <= 0.0) | (recursion_depth <= 0) {
                     return local_color;
                 }
@@ -349,7 +355,8 @@ fn trace_ray(origin: &Vector3,
                 // Compute the reflected color
                 let reflected_ray = reflect_ray(&direction.multiply_by(-1.0), &normal_norm);
 
-                let reflected_color = trace_ray(&position, &reflected_ray, TRACE_EPSILON, f64::INFINITY, recursion_depth - 1, &scene);
+                let reflected_color = trace_ray(&position, &reflected_ray, TRACE_EPSILON,
+                                                f64::INFINITY, recursion_depth - 1, &scene);
 
                 ray_color = local_color
                                 .multiply_by(1.0 - s.reflective)
@@ -357,8 +364,27 @@ fn trace_ray(origin: &Vector3,
                                 .multiply_by(s.reflective));
             },
             SceneEntity::Triangle(t) => {
-                ray_color = Rgb::from_ints(255, 255, 255);  // TODO Replace this with proper RGB calcs.
+                let position = origin.add(&direction.multiply_by(closest_t));  // Compute intersect
+                let intensity = compute_lighting(&position, &t.plane_normal,
+                                                 &direction.multiply_by(-1.0), t.specular, &scene);
+                let local_color = t.color.multiply_by(intensity);
 
+                // If we reach the recursion limit, or the triangle is not reflective, return the
+                // local color
+                if (t.reflective <= 0.0) | (recursion_depth <= 0) {
+                    return local_color;
+                }
+
+                // Compute the reflected color
+                let reflected_ray = reflect_ray(&direction.multiply_by(-1.0), &t.plane_normal);
+
+                let reflected_color = trace_ray(&position, &reflected_ray, TRACE_EPSILON,
+                                                f64::INFINITY, recursion_depth - 1, &scene);
+
+                ray_color = local_color
+                                .multiply_by(1.0 - t.reflective)
+                                .add(&(&reflected_color)
+                                .multiply_by(t.reflective));
             },
             _ => {}
         };
@@ -428,6 +454,14 @@ fn create_scene() -> Scene {
                 specular: 1000,  // Very shiny
                 reflective: 0.5, // Half reflective
             }),
+            SceneEntity::Triangle(
+                TriangleEntity::new([Vector3::new(-2.5, 0.5, 9.0),
+                                     Vector3::new(2.0, 1.0, 5.0),
+                                     Vector3::new(1.5, 2.0, 5.0)],
+                                    Rgb::from_ints(255, 255, 255),    // White
+                                    500,  // Shiny
+                                    0.7, // Quite reflective
+                                    )),
             SceneEntity::Light(LightType::Ambient(AmbientLightEntity{
                 intensity: 0.2,
             })),
@@ -451,31 +485,7 @@ fn main() {
 
     let mut canvas = Canvas::new("Chapter 5 Arbitrary camera position", CANVAS_WIDTH,
                                  CANVAS_HEIGHT);
-
-    let scene = Scene {
-        viewport_width: VIEWPORT_WIDTH,
-        viewport_height: VIEWPORT_HEIGHT,
-        background_color: Rgb::from_ints(0, 0, 0),     // Black
-        entities: vec!(
-            SceneEntity::Triangle(
-                TriangleEntity::new([Vector3::new(-2.5, 0.5, 6.0), Vector3::new(2.0, 1.0, 5.0), Vector3::new(1.5, 2.0, 5.5)],
-                                    Rgb::from_ints(255, 255, 255),    // White
-                                    10,  // Somewhat shiny
-                                    0.4, // Even more reflective
-                                    )),
-            SceneEntity::Light(LightType::Ambient(AmbientLightEntity{
-                intensity: 0.2,
-            })),
-            SceneEntity::Light(LightType::Point(PointLightEntity{
-                intensity: 0.6,
-                position: Vector3::new(2.0, 1.0, 0.0),
-            })),
-            SceneEntity::Light(LightType::Directional(DirectionalLightEntity{
-                intensity: 0.2,
-                direction: Vector3::new(1.0, 4.0, 4.0),
-            })),
-        )
-    };
+    let scene = create_scene();
 
 
     // Define the position and orientation of the camera
@@ -483,14 +493,8 @@ fn main() {
 
     let camera_rotation = Matrix3x3::new(
                             1.0, 0.0, 0.0,
-                            0.0,    1.0,  0.0,
-                            0.0, 0.0,  1.0);
-
-//     let camera_rotation = Matrix3x3::new(
-//                             0.7071, 0.0, -0.7071,
-//                             0.0,    1.0,  0.0,
-//                             0.7071, 0.0,  0.7071);
-
+                            0.0, 1.0, 0.0,
+                            0.0, 0.0, 1.0);
 
     let cw = CANVAS_WIDTH as i32;
     let ch = CANVAS_HEIGHT as i32;
