@@ -1,6 +1,7 @@
 //! Implementation of pseudocode from chapter 6 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book.
+//! book. This code implements the first sections of that chapter, where the line drawing is
+//! performed in a monolithic function.
 //!
 //! I am not affiliated with Gabriel or his book in any way.
 
