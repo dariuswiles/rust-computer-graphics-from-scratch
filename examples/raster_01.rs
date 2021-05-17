@@ -13,9 +13,9 @@ const CANVAS_WIDTH: usize = 600;
 const CANVAS_HEIGHT: usize = 600;
 
 
-/// Draws a straight line between `x_0`, `y_0` and `x_1`, `y_1` in the given color. Coordinates
-/// outside the canvas coordinates do not result in an error and any part of the line that is
-/// within the canvas will be drawn.
+/// Draws a straight line between `x_0`, `y_0` and `x_1`, `y_1` in the given color (inclusive).
+/// Coordinates outside the canvas coordinates do not result in an error and any part of the line
+/// that is within the canvas will be drawn.
 ///
 /// # Examples
 /// ```
@@ -50,7 +50,7 @@ fn draw_line(canvas: &mut Canvas, x_0: i32, y_0: i32, x_1: i32, y_1: i32, color:
 
         let mut y = y_start;
 
-        for x in i32::min(x_0, x_1) .. i32::max(x_0, x_1) {
+        for x in i32::min(x_0, x_1) .. i32::max(x_0, x_1) + 1 {
             canvas.put_pixel(x, y as i32, &color);
             y += y_delta;
         }
@@ -68,7 +68,7 @@ fn draw_line(canvas: &mut Canvas, x_0: i32, y_0: i32, x_1: i32, y_1: i32, color:
 
         let mut x = x_start;
 
-        for y in i32::min(y_0, y_1) .. i32::max(y_0, y_1) {
+        for y in i32::min(y_0, y_1) .. i32::max(y_0, y_1) + 1 {
             canvas.put_pixel(x as i32, y, &color);
             x += x_delta;
         }
