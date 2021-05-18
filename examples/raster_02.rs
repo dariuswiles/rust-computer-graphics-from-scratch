@@ -108,7 +108,7 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
         }
     } else {
         for p in interpolate(p0.y, p0.x, p1.y, p1.x) {
-            canvas.put_pixel(p.x as i32, p.y as i32, &color);
+            canvas.put_pixel(p.y as i32, p.x as i32, &color);
         }
     }
 }
