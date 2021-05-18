@@ -37,21 +37,10 @@ pub mod canvas {
     }
 
     impl Canvas {
-        /// Creates a new window with a title of `name` and with the usable area (i.e., excluding window title bar and
-        /// decorations), of the given `width` and `height`. The window is set as non-resizable to avoid the complexity
-        /// of changing the usable canvas area in response to user actions.
-        //
-        // TODO Should any of the parameters be optional, and have default values if not given?
-        // TODO Should name be the last parameter, as it is the most likely to be optional?
-        // TODO Window resize is prevented to simplify code. However, would be good to add this bearing in mind:
-        //          1. The current window size can be read with `window.get_size().0` and `.1`.
-        //          2. The buffer can be resized with `buffer.resize(new_size.0 * new_size.1, 0);`
-        //          3. The new size is passed during update with
-        //                  `window.update_with_buffer(&buffer, new_size.0, new_size.1) ....`
-        //          TODO The update fn takes the width & height of the buffer, not the window. What is minifb's
-        //               behavior when the two don't match? (Only relevant if change to `resize: true`.)
-        //               The API docs say the buffer needs to be at least as big as the window, but provide no further
-        //               info.
+        /// Creates a new window with a title of `name` and with the usable area (i.e., excluding
+        /// window title bar and decorations), of the given `width` and `height`. The window is set
+        /// as non-resizable to avoid the complexity of changing the usable canvas area in response
+        /// to user actions.
         pub fn new (name: &str, width: usize, height: usize) -> Self {
             let mut window = Window::new(
                 name,
@@ -72,6 +61,19 @@ pub mod canvas {
             buffer.resize (width * height, 0);
             Canvas {window, buffer, width, height}
         }
+
+
+        /// Clears the canvas with `color`.
+        pub fn clear_canvas (&mut self, color: &Rgb) {
+            let col: u32 = (color.red as u32) * 65536 +
+                           (color.green as u32) * 256 +
+                           (color.blue as u32);
+
+            for i in 0 .. self.buffer.len() {
+                self.buffer[i] = col;
+            }
+        }
+
 
         /// Sets a single pixel on the canvas at the given `x`, `y` coordinates. The center of the canvas is the origin,
         /// i.e., where `x = 0, y = 0`.
