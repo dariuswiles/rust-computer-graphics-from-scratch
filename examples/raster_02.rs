@@ -23,6 +23,10 @@ const CANVAS_HEIGHT: usize = 600;
 /// Returns a vector of (i32, i64) tuples, where the former is the independent variable, and the
 /// latter the dependent variable.
 ///
+/// Note: This implementation differs from the book by returning dependent and independent
+///       variables, rather than only the dependent variable. This is done because it reduces the
+///       code size of the program as a whole.
+///
 /// # Examples
 ///
 /// ```
