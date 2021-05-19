@@ -145,21 +145,6 @@ fn draw_filled_triangle (canvas: &mut Canvas, p0: &Point, p1: &Point, p2: &Point
     // the first value of `x12`
     let x012 = [&x01[..x01.len()-1], &x12[..]].concat();
 
-//     for a in x01 {
-//         print!("{}, {}\t", a.1, a.0);
-//     }
-//     println!("\n");
-//
-//     for a in x12 {
-//         print!("{}, {}\t", a.1, a.0);
-//     }
-//     println!("\n");
-//
-//     for a in x02 {
-//         print!("{}, {}\t", a.1, a.0);
-//     }
-//     println!("\n");
-
     let x_left;
     let x_right;
     let m = x02.len() / 2;
