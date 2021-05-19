@@ -68,8 +68,8 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
 
         let mut y = y_start;
 
-        for x in f64::min(p0.x, p1.x) as i32 .. f64::max(p0.x, p1.x) as i32 + 1 {
-            canvas.put_pixel(x as i32, y as i32, &color);
+        for x in f64::min(p0.x, p1.x).round() as i32 .. f64::max(p0.x, p1.x).round() as i32 + 1 {
+            canvas.put_pixel(x, y.round() as i32, &color);
             y += y_delta;
         }
     } else {
@@ -86,8 +86,8 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
 
         let mut x = x_start;
 
-        for y in f64::min(p0.y, p1.y) as i32 .. f64::max(p0.y, p1.y) as i32 + 1 {
-            canvas.put_pixel(x as i32, y, &color);
+        for y in f64::min(p0.y, p1.y).round() as i32 .. f64::max(p0.y, p1.y).round() as i32 + 1 {
+            canvas.put_pixel(x.round() as i32, y, &color);
             x += x_delta;
         }
     }

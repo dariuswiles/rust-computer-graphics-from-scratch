@@ -44,10 +44,10 @@ fn interpolate(i0: f64, d0: f64, i1: f64, d1: f64) -> Vec<Point> {
     let a;
 
     if i0 < i1 {
-        range = (i0 as i32 ..= i1 as i32).into_iter().collect();
+        range = (i0.round() as i32 ..= i1.round() as i32).into_iter().collect();
         a = (d1 - d0) / (i1 - i0);
     } else {
-        range = (i1 as i32 ..= i0 as i32).rev().into_iter().collect();
+        range = (i1.round() as i32 ..= i0.round() as i32).rev().into_iter().collect();
         a = (d1 - d0) / (i0 - i1);
     }
 
@@ -104,11 +104,11 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
 
     if x_length > y_length {
         for p in interpolate(p0.x, p0.y, p1.x, p1.y) {
-            canvas.put_pixel(p.x as i32, p.y as i32, &color);
+            canvas.put_pixel(p.x.round() as i32, p.y.round() as i32, &color);
         }
     } else {
         for p in interpolate(p0.y, p0.x, p1.y, p1.x) {
-            canvas.put_pixel(p.y as i32, p.x as i32, &color);
+            canvas.put_pixel(p.y.round() as i32, p.x.round() as i32, &color);
         }
     }
 }

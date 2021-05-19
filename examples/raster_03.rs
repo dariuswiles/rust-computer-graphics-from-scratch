@@ -44,10 +44,10 @@ fn interpolate(i0: f64, d0: f64, i1: f64, d1: f64) -> Vec<(f64, f64)> {
     let a;
 
     if i0 < i1 {
-        range = (i0 as i32 ..= i1 as i32).into_iter().collect();
+        range = (i0.round() as i32 ..= i1.round() as i32).into_iter().collect();
         a = (d1 - d0) / (i1 - i0);
     } else {
-        range = (i1 as i32 ..= i0 as i32).rev().into_iter().collect();
+        range = (i1.round() as i32 ..= i0.round() as i32).rev().into_iter().collect();
         a = (d1 - d0) / (i0 - i1);
     }
 
@@ -105,11 +105,11 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
 
     if x_length > y_length {
         for p in interpolate(p0.x, p0.y, p1.x, p1.y) {
-            canvas.put_pixel(p.0 as i32, p.1 as i32, &color);
+            canvas.put_pixel(p.0.round() as i32, p.1.round() as i32, &color);
         }
     } else {
         for p in interpolate(p0.y, p0.x, p1.y, p1.x) {
-            canvas.put_pixel(p.1 as i32, p.0 as i32, &color);
+            canvas.put_pixel(p.1.round() as i32, p.0.round() as i32, &color);
         }
     }
 }
@@ -175,12 +175,12 @@ fn draw_filled_triangle (canvas: &mut Canvas, p0: &Point, p1: &Point, p2: &Point
     }
 
     // For every line, draw a row between the left and right sides of the triangle.
-    for y in corner0.y as i32 .. corner2.y as i32 {
-        let x_start = x_left.get((y - corner0.y as i32) as usize).unwrap().1 as i32;
-        let x_end = x_right.get((y - corner0.y as i32) as usize).unwrap().1 as i32;
+    for y in corner0.y.round() as i32 .. corner2.y.round() as i32 {
+        let x_start = x_left.get((y - corner0.y.round() as i32) as usize).unwrap().1.round() as i32;
+        let x_end = x_right.get((y - corner0.y.round() as i32) as usize).unwrap().1.round() as i32;
 
         for x in x_start .. x_end {
-            canvas.put_pixel(x as i32, y as i32, color);
+            canvas.put_pixel(x, y, color);
         }
     }
 }
