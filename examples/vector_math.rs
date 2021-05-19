@@ -5,15 +5,15 @@
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix3x3 {
     // Internal representation is row first. Columns are identified by letters and rows by numbers (like spreadsheets).
-    a1: f64,
-    b1: f64,
-    c1: f64,
-    a2: f64,
-    b2: f64,
-    c2: f64,
-    a3: f64,
-    b3: f64,
-    c3: f64
+    pub a1: f64,
+    pub b1: f64,
+    pub c1: f64,
+    pub a2: f64,
+    pub b2: f64,
+    pub c2: f64,
+    pub a3: f64,
+    pub b3: f64,
+    pub c3: f64
 }
 
 impl Matrix3x3 {
@@ -53,9 +53,9 @@ impl Matrix3x3 {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vector3 {
-    x: f64,
-    y: f64,
-    z: f64
+    pub x: f64,
+    pub y: f64,
+    pub z: f64
 }
 
 impl Vector3 {
