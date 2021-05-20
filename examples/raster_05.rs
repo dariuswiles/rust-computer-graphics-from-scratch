@@ -148,14 +148,16 @@ fn main() {
     canvas.clear_canvas(&white);
 
     // The four points forming the front face of the cube.
-    // Note - these points from the JavaScript; the example in the book is wrong.
+    // Note - these points are taken from the book's JavaScript demo as the code in the book is
+    //        wrong.
     let af = Vector3::new(-2.0, -0.5, 5.0);
     let bf = Vector3::new(-2.0,  0.5, 5.0);
     let cf = Vector3::new(-1.0,  0.5, 5.0);
     let df = Vector3::new(-1.0, -0.5, 5.0);
 
     // The four points forming the back face of the cube.
-    // Note - these points from the JavaScript; the example in the book is wrong.
+    // Note - these points are taken from the book's JavaScript demo as the code in the book is
+    //        wrong.
     let ab = Vector3::new(-2.0, -0.5, 6.0);
     let bb = Vector3::new(-2.0,  0.5, 6.0);
     let cb = Vector3::new(-1.0,  0.5, 6.0);
