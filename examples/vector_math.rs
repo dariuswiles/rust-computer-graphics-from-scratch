@@ -1,10 +1,16 @@
-//! A basic implementation of vectors, matrices and minimal math operations implemented as a learning exercise.
-//! You are strongly advised to use an established linear algebra library such as `nalgebra` or `cgmath` in
-//! preference to this amateur attempt.
+//! A basic implementation of vectors, matrices and minimal math operations implemented as a
+//! learning exercise. You are strongly advised to use an established linear algebra library such
+//! as `nalgebra` or `cgmath` in preference to this amateur attempt.
 
+
+/// A 3 row and 3 column matrix. The individual fields are identified with letters for columns and
+/// numbers for rows, similar to the system used by most spreadsheets. In other words, the fields
+/// are named:
+///   a1  b1  c1
+///   a2  b2  c2
+///   a3  b3  c3
 #[derive(Clone, Copy, Debug)]
 pub struct Matrix3x3 {
-    // Internal representation is row first. Columns are identified by letters and rows by numbers (like spreadsheets).
     pub a1: f64,
     pub b1: f64,
     pub c1: f64,
@@ -17,8 +23,8 @@ pub struct Matrix3x3 {
 }
 
 impl Matrix3x3 {
-    /// Creates a new 3x3 matrix from the nine values passed in. Columns are identified by letters and rows by
-    /// numbers (like spreadsheets).
+    /// Creates a new 3x3 matrix from the nine values passed in. Columns are identified by letters
+    /// and rows by numbers (like spreadsheets).
     #[allow(dead_code)]
     pub fn new(
         a1: f64, b1: f64, c1: f64,
@@ -32,8 +38,8 @@ impl Matrix3x3 {
         }
     }
 
-    /// Multiplies this `Matrix3x3` instance with the `Vector3` passed and returns the result as a new `Vector3`
-    /// instance.
+    /// Multiplies this `Matrix3x3` instance with the `Vector3` passed and returns the result as a
+    /// new `Vector3` instance.
     #[allow(dead_code)]
     pub fn multiply_vector(&self, v: &Vector3) -> Vector3 {
         let row1 = &self.a1 * v.x + &self.b1 * v.y + &self.c1 * v.z;
@@ -42,13 +48,14 @@ impl Matrix3x3 {
 
         Vector3::new(row1, row2, row3)
     }
-
-
-
-
-    // TODO Define math operations as they are needed by the book.
-
 }
+
+
+
+
+
+
+
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -101,7 +108,8 @@ impl Vector3 {
         self.x * v.x + self.y * v.y + self.z * v.z
     }
 
-    /// Calculates the cross product of this `Vector3` and the one passed as the parameter, i.e., `self × v`.
+    /// Calculates the cross product of this `Vector3` and the one passed as the parameter, i.e.,
+    /// `self × v`.
     #[allow(dead_code)]
     pub fn cross(&self, v: &Vector3) -> Self {
         Self {
@@ -111,9 +119,10 @@ impl Vector3 {
         }
     }
 
-    /// Normalizes this `Vector3` and returns the normalized version as a new `Vector3`. Normalizing means dividing the
-    /// `x`, `y` and `z` components by the `Vector3`'s length, resulting in a `Vector3` that is the same direction, but
-    /// `exactly 1 unit in length. If the `Vector3` is zero length, an error is returned
+    /// Normalizes this `Vector3` and returns the normalized version as a new `Vector3`.
+    /// Normalizing means dividing the `x`, `y` and `z` components by the `Vector3`'s length,
+    /// resulting in a `Vector3` that is the same direction, but `exactly 1 unit in length. If the
+    /// `Vector3` is zero length, an error is returned.
     #[allow(dead_code)]
     pub fn normalize(&self) -> Result<Self, ()> {
         let length = self.length();
