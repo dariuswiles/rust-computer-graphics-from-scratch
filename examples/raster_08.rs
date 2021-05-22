@@ -1,8 +1,37 @@
-//! Implementation of pseudocode from chapter 10 of Gabriel Gambetta's
+//! Implementation of concepts from chapter 10 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
 //! book. This code renders two wireframe cubes by modifying the code for the previous example to
 //! use homogenous coordinates. This allows many of the scaling, rotation and transform operations
 //! that were repeated for each vertex to be combined and cached, improving performance.
+//!
+//! The following operations need to be performed on a vertex within an instance of a model to
+//! render it. The vertex is defined in model space, and it is first:
+//! [I_s] Scaled;
+//! [I_r] Rotated; and
+//! [I_t] Translated.
+//!
+//! The translation transforms the vertex into world coordinates. Conceptually, the camera is
+//! positioned in the world within the same coordinate system with its own translation and
+//! rotation. However, it is easier to keep the camera stationary and transform the world around
+//! it. The following operations convert a vertex expressed in world coordinates to one in
+//! camera coordinates:
+//! [C_t^-1] -camera_translation (note the minus); and
+//! [C_r^-1] inverse(camera_rotation).
+//!
+//! Finally:
+//! [P] The vertex in 3D camera space is projected onto the flat 2D viewport.
+//! [M] The 2D point on the viewport is mapped onto the 2D canvas.
+//!
+//! These 7 operations are grouped into the following three matrices, as explained in the book:
+//! [M_projection] = M * P
+//! [M_camera] = C_r^-1 * C_t^-1
+//! [M_model] = I_t * I_r * I_s
+//!
+//! M_projection typically only needs to be changed when the size of the canvas changes, which will
+//! be rarely or never.
+//! M_camera needs to be changed when the camera moves.
+//! M_model is different for every instance, though the value for a specific instance typically
+//! doesn't change unless the instance moves in world space.
 //!
 //! I am not affiliated with Gabriel or his book in any way.
 
