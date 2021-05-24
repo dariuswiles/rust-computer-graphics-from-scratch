@@ -64,8 +64,11 @@ struct Model<'a> {
 /// field, preventing instances being moved.
 struct ModelInstance<'a> {
     model: &'a Model<'a>,
+    #[allow(dead_code)]
     position: Vector3,
+    #[allow(dead_code)]
     orientation: Matrix4x4,
+    #[allow(dead_code)]
     scale: f64,
     transform: Matrix4x4,
 }
@@ -77,7 +80,9 @@ impl<'a> ModelInstance<'a> {
     fn new(model: &'a Model, position: Vector3, orientation: Matrix4x4, scale: f64) -> Self {
         let transform =
             Matrix4x4::new_translation_matrix(&position)
-            .multiply_matrix4x4(&orientation.multiply_matrix4x4(&Matrix4x4::new_scaling_matrix(scale)));
+            .multiply_matrix4x4(
+                &orientation.multiply_matrix4x4(
+                    &Matrix4x4::new_scaling_matrix(scale)));
 
         Self {
             model: model,
@@ -215,6 +220,7 @@ fn interpolate(i0: f64, d0: f64, i1: f64, d1: f64) -> Vec<(f64, f64)> {
 /// canvas.display_until_exit();
 /// ```
 fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
+
     let x_length = (p1.x - p0.x).abs();
     let y_length = (p1.y - p0.y).abs();
 
@@ -344,7 +350,7 @@ fn main() {
                         ),
                      ModelInstance::new(
                             &cube,
-                            Vector3::new(1.25, 2.0, 7.5),
+                            Vector3::new(1.25, 2.5, 7.5),
                             Matrix4x4::new_oy_rotation_matrix(195.0),
                             1.0,
                         ),
