@@ -128,7 +128,7 @@ impl Matrix4x4 {
 
     /// Creates a new 4x4 transform matrix representing the 3D translation passed as a `Vector3`.
     #[allow(dead_code)]
-    pub fn new_translation_matrix(translation: Vector3) -> Matrix4x4 {
+    pub fn new_translation_matrix(translation: &Vector3) -> Matrix4x4 {
         Self {
             a1: 1.0, b1: 0.0, c1: 0.0, d1: translation.x,
             a2: 0.0, b2: 1.0, c2: 0.0, d2: translation.y,
