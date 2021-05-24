@@ -155,12 +155,12 @@ impl Matrix4x4 {
     /// new `Vector4` instance.
     #[allow(dead_code)]
     pub fn multiply_vector(&self, v: &Vector4) -> Vector4 {
-        let row1 = &self.a1 * v.x + &self.b1 * v.y + &self.c1 * v.z + &self.d1 * v.w;
-        let row2 = &self.a2 * v.x + &self.b2 * v.y + &self.c2 * v.z + &self.d2 * v.w;
-        let row3 = &self.a3 * v.x + &self.b3 * v.y + &self.c3 * v.z + &self.d3 * v.w;
-        let row4 = &self.a4 * v.x + &self.b4 * v.y + &self.c4 * v.z + &self.d4 * v.w;
-
-        Vector4::new(row1, row2, row3, row4)
+        Vector4::new(
+            &self.a1 * v.x + &self.b1 * v.y + &self.c1 * v.z + &self.d1 * v.w,
+            &self.a2 * v.x + &self.b2 * v.y + &self.c2 * v.z + &self.d2 * v.w,
+            &self.a3 * v.x + &self.b3 * v.y + &self.c3 * v.z + &self.d3 * v.w,
+            &self.a4 * v.x + &self.b4 * v.y + &self.c4 * v.z + &self.d4 * v.w,
+        )
     }
 
 
