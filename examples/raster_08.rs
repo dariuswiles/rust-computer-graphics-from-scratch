@@ -98,6 +98,41 @@ struct Camera {
 }
 
 
+/// A 2D point.
+#[derive(Clone, Copy, Debug)]
+struct Point {
+    pub x: f64,
+    pub y: f64,
+}
+
+impl Point {
+    #[allow(dead_code)]
+    fn new(x: f64, y: f64) -> Self {
+        Self {x: x, y: y}
+    }
+
+    #[allow(dead_code)]
+    fn from_ints(x: i32, y: i32) -> Self {
+        Self {x: x as f64, y: y as f64}
+    }
+}
+
+
+/// A triangle, consisting of 3 vertex indices defining the position of its corners, and a color.
+#[derive(Clone, Copy, Debug)]
+struct Triangle {
+    pub vertices: (usize, usize, usize),
+    pub color: Rgb,
+}
+
+impl Triangle {
+    #[allow(dead_code)]
+    fn new(vertices: (usize, usize, usize), color: Rgb) -> Self {
+        Self {vertices: vertices, color: color}
+    }
+}
+
+
 /// Translates a point on the `viewport` in viewport coordinates, e.g., -0.5 to 0.5, to the
 /// corresponding point on the `canvas` in canvas coordinates, e.g., 0 to 600. The result is left
 /// as a pair of `f64` values because further math will be performed, so converting to `i32`s is
@@ -158,41 +193,6 @@ fn interpolate(i0: f64, d0: f64, i1: f64, d1: f64) -> Vec<(f64, f64)> {
     }
 
     values
-}
-
-
-/// A 2D point.
-#[derive(Clone, Copy, Debug)]
-struct Point {
-    pub x: f64,
-    pub y: f64,
-}
-
-impl Point {
-    #[allow(dead_code)]
-    fn new(x: f64, y: f64) -> Self {
-        Self {x: x, y: y}
-    }
-
-    #[allow(dead_code)]
-    fn from_ints(x: i32, y: i32) -> Self {
-        Self {x: x as f64, y: y as f64}
-    }
-}
-
-
-/// A triangle, consisting of 3 vertex indices defining the position of its corners, and a color.
-#[derive(Clone, Copy, Debug)]
-struct Triangle {
-    pub vertices: (usize, usize, usize),
-    pub color: Rgb,
-}
-
-impl Triangle {
-    #[allow(dead_code)]
-    fn new(vertices: (usize, usize, usize), color: Rgb) -> Self {
-        Self {vertices: vertices, color: color}
-    }
 }
 
 
