@@ -156,7 +156,8 @@ fn project_vertex(v: &Vector4) -> Point {
 
 
 /// Iterates over the range `i0` to `i1` inclusive, interpolating over a dependent range from `d0`
-/// to `d1` inclusive.
+/// to `d1` inclusive. `i0` must be lower than or equal to `i1`, or the vector returned will be
+/// empty.
 ///
 /// Returns a vector of (f64, f64) pairs, where the former is the independent variable, and the
 /// latter the dependent variable.
@@ -179,22 +180,17 @@ fn interpolate(i0: f64, d0: f64, i1: f64, d1: f64) -> Vec<(f64, f64)> {
         return values;
     }
 
-    let range: Vec<i32>;
-    let a;
-
-    if i0 < i1 {
-        range = (i0.round() as i32 ..= i1.round() as i32).into_iter().collect();
-        a = (d1 - d0) / (i1 - i0);
-    } else {
-        range = (i1.round() as i32 ..= i0.round() as i32).rev().into_iter().collect();
-        a = (d1 - d0) / (i0 - i1);
+    if i0 > i1 {
+        return values;
     }
 
+    let range = (i0.round() as i32 ..= i1.round() as i32).into_iter().collect::<Vec<_>>();
+    let delta = (d1 - d0) / (i1 - i0);
     let mut d = d0;
 
     for i in range {
         values.push((i as f64, d));
-        d = d + a;
+        d = d + delta;
     }
 
     values
@@ -220,16 +216,36 @@ fn interpolate(i0: f64, d0: f64, i1: f64, d1: f64) -> Vec<(f64, f64)> {
 /// canvas.display_until_exit();
 /// ```
 fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
-
     let x_length = (p1.x - p0.x).abs();
     let y_length = (p1.y - p0.y).abs();
 
     if x_length > y_length {
-        for p in interpolate(p0.x, p0.y, p1.x, p1.y) {
+        // The line is more horizontal than vertical. Determine which point is more to the left,
+        // so the line is drawn from left to right.
+        let (left, right);
+        if p0.x < p1.x {
+            left = p0;
+            right = p1;
+        } else {
+            left = p1;
+            right = p0;
+        }
+
+        for p in interpolate(left.x, left.y, right.x, right.y) {
             canvas.put_pixel(p.0.round() as i32, p.1.round() as i32, &color);
         }
     } else {
-        for p in interpolate(p0.y, p0.x, p1.y, p1.x) {
+        // The line is more vertical than horizontal. Determine which point is lower, so the line
+        // is drawn from bottom to top.
+        let (bottom, top);
+        if p0.y < p1.y {
+            bottom = p0;
+            top = p1;
+        } else {
+            bottom = p1;
+            top = p0;
+        }
+        for p in interpolate(bottom.y, bottom.x, top.y, top.x) {
             canvas.put_pixel(p.1.round() as i32, p.0.round() as i32, &color);
         }
     }
