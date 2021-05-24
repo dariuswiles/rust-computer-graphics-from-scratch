@@ -114,6 +114,7 @@ impl Matrix4x4 {
 
     /// Creates a new 4x4 transform matrix representing a rotation around the axis that runs from
     /// the origin along the Y-axis. The rotation parameter is in degrees.
+    #[allow(dead_code)]
     pub fn new_oy_rotation_matrix(degrees: f64) -> Self {
         let (s, c) = f64::sin_cos(degrees*PI/180.0);
 
