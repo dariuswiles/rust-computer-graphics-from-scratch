@@ -56,10 +56,45 @@ struct Model<'a> {
 }
 
 
-// An instance of a particular model shape.
+/// An instance of a particular model shape. Includes the `model` to use and its position,
+/// orientation and scale. A `transform` matrix is generated when the object is created that
+/// performs the translation, orientation and scaling, so these computations only need to be
+/// performed once per instance. A `ModelInstance` object should not be changed after creation
+/// because the `transform` would no longer be correct. This restriction includes the `position`
+/// field, preventing instances being moved.
 struct ModelInstance<'a> {
     model: &'a Model<'a>,
     position: Vector3,
+    orientation: Matrix4x4,
+    scale: f64,
+    transform: Matrix4x4,
+}
+
+impl<'a> ModelInstance<'a> {
+    /// Creates and returns a new `ModelInstance` object, and automatically generates and stores a
+    /// `transform` matrix that performs the combination of the translation, orientation and
+    /// scaling operations.
+    fn new(model: &'a Model, position: Vector3, orientation: Matrix4x4, scale: f64) -> Self {
+        let transform =
+            Matrix4x4::new_translation_matrix(&position)
+            .multiply_matrix4x4(&orientation.multiply_matrix4x4(&Matrix4x4::new_scaling_matrix(scale)));
+
+        Self {
+            model: model,
+            position: position,
+            orientation: orientation,
+            scale: scale,
+            transform: transform,
+        }
+    }
+}
+
+
+/// A camera, consisting of a position in 3D space, and an orientation. The latter is expressed in
+/// homogenous coordinates, i.e., a 4x4 matrix.
+struct Camera {
+    position: Vector3,
+    orientation: Matrix4x4,
 }
 
 
@@ -74,7 +109,7 @@ fn viewport_to_canvas(x: f64, y: f64) -> Point {
 
 
 /// Translates a point in 3D space to the corresponding point on the `viewport`.
-fn project_vertex(v: &Vector3) -> Point {
+fn project_vertex(v: &Vector4) -> Point {
     viewport_to_canvas(v.x * DISTANCE_FROM_CAMERA_TO_VIEWPORT / v.z,
                        v.y * DISTANCE_FROM_CAMERA_TO_VIEWPORT / v.z)
 }
@@ -195,16 +230,18 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
 }
 
 
-/// Renders the array of `triangles` passed. The corners of the `triangles` are indexes into the
-/// array of `vertices` that are also passed.
-fn render_instance(canvas: &mut Canvas, mi: &ModelInstance) {
+/// Renders the `ModelInstance` passed by iterating through the list of triangles and vertices
+/// that it contains, using the `transform` provided to transform each vertex into camera space,
+/// then calling `render_triangle` to draw the triangle on the 2D canvas.
+fn render_instance(canvas: &mut Canvas, mi: &ModelInstance, transform: &Matrix4x4) {
     let mut projected = vec![];
 
     // The `vertices` are defined in the 3D world coordinates, so project each vertex onto the
     // viewport, resulting in a vector of 2D viewport `Point`s.
     for v in mi.model.vertices {
-        let v_prime = v.add(&mi.position);
-        projected.push(project_vertex(&v_prime));
+        let vertex_h = Vector4::new(v.x, v.y, v.z, 1.0);
+
+        projected.push(project_vertex(&transform.multiply_vector(&vertex_h)));
     }
 
     // Render each triangle by passing coordinates of each corner as a 2D `Point` on the viewport.
@@ -214,10 +251,22 @@ fn render_instance(canvas: &mut Canvas, mi: &ModelInstance) {
 }
 
 
-/// Renders every model in the `instances` array passed.
-fn render_scene(canvas: &mut Canvas, instances: &[ModelInstance]) {
-    for i in instances {
-        render_instance(canvas, i);
+/// Renders every model instance in the `instances` array passed. The `Camera` object passed is
+/// used to create a world view to camera view transform by reversing its transpose and rotation.
+/// This is combined with the transform included with each model instance to create a transform
+/// that converts from instance space to camera space. This transform is generated once per
+/// instance and passed as input to the `render_instance` function.
+fn render_scene(canvas: &mut Canvas, camera: &Camera, instances: &[ModelInstance]) {
+    let camera_matrix =
+        camera.orientation
+            .transpose()
+            .multiply_matrix4x4(&Matrix4x4::new_translation_matrix(
+                &camera.position.multiply_by(-1.0),
+            ));
+
+    for mi in instances {
+        let transform = camera_matrix.multiply_matrix4x4(&mi.transform);
+        render_instance(canvas, mi, &transform);
     }
 }
 
@@ -287,11 +336,24 @@ fn main() {
 
     let cube = Model { vertices: &vertices, triangles: &triangles };
 
-    let instances = [ModelInstance { model: &cube, position: Vector3::new(-1.5, 0.0, 7.0) },
-                     ModelInstance { model: &cube, position: Vector3::new(1.25, 2.0, 7.5) },
+    let instances = [ModelInstance::new(
+                            &cube,
+                            Vector3::new(-1.5, 0.0, 7.0),
+                            Matrix4x4::identity(),
+                            0.75,
+                        ),
+                     ModelInstance::new(
+                            &cube,
+                            Vector3::new(1.25, 2.0, 7.5),
+                            Matrix4x4::new_oy_rotation_matrix(195.0),
+                            1.0,
+                        ),
                     ];
 
-    render_scene(&mut canvas, &instances);
+    let camera = Camera {position: Vector3::new(-3.0, 1.0, 2.0),
+                         orientation: Matrix4x4::new_oy_rotation_matrix(-30.0)};
+
+    render_scene(&mut canvas, &camera, &instances);
 
     canvas.display_until_exit();
 }
