@@ -294,10 +294,16 @@ pub struct Vector4 {
 }
 
 impl Vector4 {
-    /// Creates a new 3D vector from the three values passed in.
+    /// Creates a new 4-element 3D vector from the four values passed in.
     #[allow(dead_code)]
     pub fn new(x: f64, y: f64, z: f64, w: f64) -> Self {
         Self {x: x, y: y, z: z, w: w}
+    }
+
+    /// Creates a new 4-element 3D vector from the `Vector3` and value of `w` passed in.
+    #[allow(dead_code)]
+    pub fn from_vector3(&v: Vector3, w: f64) -> Self {
+        Self {x: v.x, y: v.y, z: v.z, w: w}
     }
 
     /// Returns this vector's length.
