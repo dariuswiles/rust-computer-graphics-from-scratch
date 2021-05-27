@@ -302,7 +302,7 @@ impl Vector4 {
 
     /// Creates a new 4-element 3D vector from the `Vector3` and value of `w` passed in.
     #[allow(dead_code)]
-    pub fn from_vector3(&v: Vector3, w: f64) -> Self {
+    pub fn from_vector3(v: &Vector3, w: f64) -> Self {
         Self {x: v.x, y: v.y, z: v.z, w: w}
     }
 
