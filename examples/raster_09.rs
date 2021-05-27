@@ -4,6 +4,7 @@
 //!
 //! I am not affiliated with Gabriel or his book in any way.
 
+use std::f64::consts::SQRT_2;
 use std::iter::Iterator;
 use std::vec::Vec;
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
@@ -22,6 +23,8 @@ const DISTANCE_FROM_CAMERA_TO_VIEWPORT: f64 = 1.0;
 struct Model<'a> {
     vertices: &'a [Vector3],
     triangles: &'a [Triangle],
+    bounds_center: &'a Vector3,
+    bounds_radius: f64,
 }
 
 
@@ -69,6 +72,7 @@ impl<'a> ModelInstance<'a> {
 struct Camera {
     position: Vector3,
     orientation: Matrix4x4,
+    clipping_planes: [Plane; 5]
 }
 
 
@@ -107,8 +111,8 @@ impl Triangle {
 }
 
 
-/// A 2D plane, defined as a normal to the plane, and a distance. The normal should be a unit
-/// vector, i.e., its length should be 1.
+/// A 2D plane, defined as a normal to the plane, and a distance from the origin. The normal should
+/// be a unit vector, i.e., its length should be 1.
 #[derive(Clone, Copy, Debug)]
 struct Plane {
     pub normal: Vector3,
@@ -251,6 +255,59 @@ fn render_instance(canvas: &mut Canvas, mi: &ModelInstance, transform: &Matrix4x
 }
 
 
+// xxx
+fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &Matrix4x4)
+    -> Option<Model> {
+
+    // Apply `transform` to the center position of the bounding sphere and see if the instance is
+    // completely outside any of the clipping planes. If so, return immediately.
+    let transformed_center = transform.multiply_matrix4x4(model.bounds_center);
+
+    for cp in clipping_planes {
+        let distance = cp.normal.dot(&transformed_center) + cp.distance;
+        if distance < -model.bounds_radius {
+            return None;
+        }
+    }
+
+    let mut vertices = Vec::new();
+
+    // Apply modelview transform to each vertex in the model instance.
+    for v in model.vertices {
+        vertices.push(transform.multiply_matrix4x4(Vector4::new(&v.x, &v.y, &v.z, 0.0)));
+    }
+
+    // Loop through every clipping plane clipping all the model vertices each time. The output of
+    // one interaction is used as input to the next to handle cases where a triangle intersects
+    // multiply clipping planes.
+    let mut triangles = model.triangles.clone();
+
+    for cp in clipping_planes {
+        let mut new_triangles = Vec::new();
+        for t in triangles {
+            clip_triangle(&t, cp, &mut new_triangles, &vertices);
+        }
+
+        triangles = new_triangles;
+    }
+
+    Some(Model::new {
+        vertices: &vertices,
+        triangles: &triangles,
+        bounds_center: transformed_center,
+        bounds_radius: model.bounds_radius,
+    })
+}
+
+
+
+
+
+
+
+
+
+
 /// Renders every model instance in the `instances` array passed. The `Camera` object passed is
 /// used to create a world view to camera view transform by reversing its transpose and rotation.
 /// This is combined with the transform included with each model instance to create a transform
@@ -266,7 +323,10 @@ fn render_scene(canvas: &mut Canvas, camera: &Camera, instances: &[ModelInstance
 
     for mi in instances {
         let transform = camera_matrix.multiply_matrix4x4(&mi.transform);
-        render_instance(canvas, mi, &transform);
+        let clipped = transform_and_clip(&camera.clipping_planes, &mi.model, &transform);
+        if 1 == 1 /* TODO fix this logic */ {
+            render_instance(canvas, mi, &transform);
+        }
     }
 }
 
@@ -299,46 +359,74 @@ fn signed_distance(plane: &Plane, vertex: &Vector3) -> f64 {
 }
 
 
-/// Returns an array containing the array or triangles needed to render the
 
-`triangle` passed, or one or more `Triangle`s
-fn clip_triangle(triangle: &Triangle, plane: &Plane) -> [Triangle] {
+fn intersection(zzz1: &Point, zzz2: &Point, plane: &Plane) {
+    unimplemented!();
+}
+
+
+
+
+
+///
+fn clip_triangle_against_plane(triangles: &Vec<Triangle>, plane: &Plane) -> Vec<Triangle> {
+    let mut clipped_triangles = Vec::new();
+
+    for t in triangles {
+        clipped_triangles.append(&mut clip_triangle(&t, plane));
+    }
+
+    clipped_triangles
+}
+
+
+/// Returns a `Vec` containing the triangles needed to render the visible part of the `triangle`
+/// passed. If `triangle` is completely within the clipping volume, it is returned as the only
+/// element. If it is completely outside, the returned `Vec` is empty. If it is partially within,
+/// new triangles that draw just the visible portion of `triangle` are returned.
+fn clip_triangle(triangle: &Triangle, plane: &Plane) -> Vec<Triangle> {
     let d0 = signed_distance(plane, triangle.vertices.0);
     let d1 = signed_distance(plane, triangle.vertices.1);
     let d2 = signed_distance(plane, triangle.vertices.2);
 
-    let mut positive = vec![];
-    let mut negative = vec![];
-    if d0 > 0 { positive.push(&d0); } else { negative.push(&d0); }
-    if d1 > 0 { positive.push(&d1); } else { negative.push(&d1); }
-    if d2 > 0 { positive.push(&d2); } else { negative.push(&d2); }
+    let mut positive = Vec::new();
+    let mut negative = Vec::new();
+    if d0 > 0.0 { positive.push(&triangle.vertices.0); }
+        else { negative.push(&triangle.vertices.0); }
+    if d1 > 0.0 { positive.push(&triangle.vertices.1); }
+        else { negative.push(&triangle.vertices.1); }
+    if d2 > 0.0 { positive.push(&triangle.vertices.2); }
+        else { negative.push(&triangle.vertices.2); }
 
-    match positive.length() {
-        3 => return [triangle],
+    match positive.len() {
+        3 => return vec![*triangle],
         2 => {
-                let a = positive.pop();
-                let b = positive.pop();
-                let c = negative.pop();
+                let a = positive.pop().unwrap();
+                let b = positive.pop().unwrap();
+                let c = negative.pop().unwrap();
 
                 // TODO It may be better to pass first 2 parms as 1st.subtract(2nd)
                 let a_prime = intersection(&a, &c, plane);  // TODO pseudcode awaiting implementation of `intersection`
                 let b_prime = intersection(&b, &c, plane);  // TODO pseudcode awaiting implementation of `intersection`
 
-                return [Triangle::new(a, b, a_prime), Triangle::new(a_prime, b, b_prime)];
+                return vec![
+                    Triangle::new((a, b, a_prime), Rgb::from_ints(0,0,0)),  // TODO interpolate color
+                    Triangle::new((a_prime, b, b_prime), Rgb::from_ints(0,0,0)),    // TODO interpolate color
+                ];
             },
         1 => {
-                let a = positive.pop();
-                let b = negative.pop();
-                let c = negative.pop();
+                let a = positive.pop().unwrap();
+                let b = negative.pop().unwrap();
+                let c = negative.pop().unwrap();
 
                 // TODO see above comments
                 let b_prime = intersection(&a, &b, plane);  // TODO pseudcode awaiting implementation of `intersection`
                 let c_prime = intersection(&a, &c, plane);  // TODO pseudcode awaiting implementation of `intersection`
 
-                return [Triangle::new(a, b_prime, c_prime)];
+                return vec![Triangle::new((a, b_prime, c_prime), Rgb::from_ints(0,0,0))];    // TODO interpolate color
             },
-        0 => return [],
-        _ => panic("The number of triangle vertices within a clipping plane was not within 0-3")
+        0 => return vec![],
+        _ => panic!("The number of triangle vertices within a clipping plane was not within 0-3")
     }
 }
 
@@ -389,7 +477,12 @@ fn main() {
         Triangle::new((2, 7, 3), cyan),
     ];
 
-    let cube = Model { vertices: &vertices, triangles: &triangles };
+    let cube = Model {
+                    vertices: &vertices,
+                    triangles: &triangles,
+                    bounds_center: &Vector3::new(0.0, 0.0, 0.0),
+                    bounds_radius: f64::sqrt(3.0),
+                    };
 
     let instances = [ModelInstance::new(
                             &cube,
@@ -411,8 +504,17 @@ fn main() {
                         ),
                     ];
 
-    let camera = Camera {position: Vector3::new(-3.0, 1.0, 2.0),
-                         orientation: Matrix4x4::new_oy_rotation_matrix(-30.0)};
+    let camera = Camera {
+                    position: Vector3::new(-3.0, 1.0, 2.0),
+                    orientation: Matrix4x4::new_oy_rotation_matrix(-30.0),
+                    clipping_planes: [
+                        Plane { normal: Vector3::new(0.0, 0.0, 1.0), distance: -1.0 },  // Near
+                        Plane { normal: Vector3::new(SQRT_2, 0.0, SQRT_2), distance: 0.0 }, // Lft
+                        Plane { normal: Vector3::new(-SQRT_2, 0.0, SQRT_2), distance: 0.0 }, // Rgt
+                        Plane { normal: Vector3::new(0.0, -SQRT_2, SQRT_2), distance: 0.0 }, // Top
+                        Plane { normal: Vector3::new(0.0, SQRT_2, SQRT_2), distance: 0.0 }, // Bttm
+                    ],
+                };
 
     render_scene(&mut canvas, &camera, &instances);
 
