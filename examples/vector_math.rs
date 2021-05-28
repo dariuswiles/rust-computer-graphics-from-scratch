@@ -217,6 +217,19 @@ impl Vector3 {
         Self {x: x, y: y, z: z}
     }
 
+    /// Creates a new 3-element 3D vector from the `Vector4`. If the `w` value of the `Vector4` is
+    /// 0, the input is assumed to be a vector and the `w` is discarded in the `Vector3` returned.
+    /// If non-zero, the input is assumed to be a point, and the output `Vector3` has its `x`, `y`
+    /// and `z` values divided by `w`.
+    #[allow(dead_code)]
+    pub fn from_vector4(v: &Vector4) -> Self {
+        if v.w == 0.0 {
+            Self {x: v.x, y: v.y, z: v.z}
+        } else {
+            Self {x: v.x / v.w, y: v.y / v.w, z: v.z / v.w}
+        }
+    }
+
     /// Returns this vector's length.
     #[allow(dead_code)]
     pub fn length(&self) -> f64 {
