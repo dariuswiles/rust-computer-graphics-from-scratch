@@ -20,10 +20,10 @@ const DISTANCE_FROM_CAMERA_TO_VIEWPORT: f64 = 1.0;
 
 
 /// General struct to hold vertex and triangle data for any model shape.
-struct Model<'a> {
-    vertices: &'a [Vector3],
-    triangles: &'a [Triangle],
-    bounds_center: &'a Vector3,
+struct Model {
+    vertices: Vec<Vector3>,
+    triangles: Vec<Triangle>,
+    bounds_center: Vector3,
     bounds_radius: f64,
 }
 
@@ -35,7 +35,7 @@ struct Model<'a> {
 /// because the `transform` would no longer be correct. This restriction includes the `position`
 /// field, preventing instances being moved.
 struct ModelInstance<'a> {
-    model: &'a Model<'a>,
+    model: &'a Model,
     #[allow(dead_code)]
     position: Vector3,
     #[allow(dead_code)]
@@ -234,37 +234,45 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
 }
 
 
-/// Renders the `ModelInstance` passed by iterating through the list of triangles and vertices
+/// Renders the `Model` passed by iterating through the list of triangles and vertices
 /// that it contains, using the `transform` provided to transform each vertex into camera space,
 /// then calling `render_triangle` to draw the triangle on the 2D canvas.
-fn render_instance(canvas: &mut Canvas, mi: &ModelInstance, transform: &Matrix4x4) {
+fn render_instance(canvas: &mut Canvas, model: &Model, transform: &Matrix4x4) {
     let mut projected = vec![];
 
     // The `vertices` are defined in the 3D world coordinates, so project each vertex onto the
     // viewport, resulting in a vector of 2D viewport `Point`s.
-    for v in mi.model.vertices {
+    for v in &model.vertices {
         let vertex_h = Vector4::new(v.x, v.y, v.z, 1.0);
 
         projected.push(project_vertex(&transform.multiply_vector(&vertex_h)));
     }
 
     // Render each triangle by passing coordinates of each corner as a 2D `Point` on the viewport.
-    for t in mi.model.triangles {
+    for t in &model.triangles {
         render_triangle(canvas, &t, &projected);
     }
 }
 
 
-// xxx
+// Clips `model` against the five `clipping_planes`, modifying the lists of vertices and triangles
+// so that only objects within the clip volume are included. Triangles that are only partially
+// within the volume have their vertices redefined to the boundary of the clipping volume, and may
+// be split into two triangles if needed.
+//
+// If `model` is completely outside the clipping volume, returns `None`. Otherwise, returns a new
+// `Model` containing the modified vertices and triangles.
 fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &Matrix4x4)
     -> Option<Model> {
 
     // Apply `transform` to the center position of the bounding sphere and see if the instance is
     // completely outside any of the clipping planes. If so, return immediately.
-    let transformed_center = transform.multiply_matrix4x4(model.bounds_center);
+    let transformed_center = transform.multiply_vector(
+                                &Vector4::from_vector3(&model.bounds_center, 0.0));
 
     for cp in clipping_planes {
-        let distance = cp.normal.dot(&transformed_center) + cp.distance;
+        let distance = Vector4::from_vector3(&cp.normal, 0.0).dot(&transformed_center)
+                            + cp.distance;
         if distance < -model.bounds_radius {
             return None;
         }
@@ -273,39 +281,32 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
     let mut vertices = Vec::new();
 
     // Apply modelview transform to each vertex in the model instance.
-    for v in model.vertices {
-        vertices.push(transform.multiply_matrix4x4(Vector4::new(&v.x, &v.y, &v.z, 0.0)));
+    for v in &model.vertices {
+        vertices.push(transform.multiply_vector(&Vector4::from_vector3(&v, 0.0)));
     }
 
-    // Loop through every clipping plane clipping all the model vertices each time. The output of
+    // Loop through every clipping plane clipping all the model vertices for each. The output of
     // one interaction is used as input to the next to handle cases where a triangle intersects
-    // multiply clipping planes.
+    // multiple clipping planes.
     let mut triangles = model.triangles.clone();
+    let mut modified_vertices = model.vertices.clone();
 
     for cp in clipping_planes {
         let mut new_triangles = Vec::new();
         for t in triangles {
-            clip_triangle(&t, cp, &mut new_triangles, &vertices);
+            clip_triangle(t, &cp, &mut new_triangles, &mut modified_vertices);
         }
 
         triangles = new_triangles;
     }
 
-    Some(Model::new {
-        vertices: &vertices,
-        triangles: &triangles,
-        bounds_center: transformed_center,
-        bounds_radius: model.bounds_radius,
+    Some (Model {
+            vertices: modified_vertices.to_vec(),
+            triangles: triangles.to_vec(),
+            bounds_center: model.bounds_center,
+            bounds_radius: model.bounds_radius,
     })
 }
-
-
-
-
-
-
-
-
 
 
 /// Renders every model instance in the `instances` array passed. The `Camera` object passed is
@@ -323,9 +324,9 @@ fn render_scene(canvas: &mut Canvas, camera: &Camera, instances: &[ModelInstance
 
     for mi in instances {
         let transform = camera_matrix.multiply_matrix4x4(&mi.transform);
-        let clipped = transform_and_clip(&camera.clipping_planes, &mi.model, &transform);
-        if 1 == 1 /* TODO fix this logic */ {
-            render_instance(canvas, mi, &transform);
+        let clipped_model = transform_and_clip(&camera.clipping_planes, &mi.model, &transform);
+        if let Some(cm) = clipped_model {
+            render_instance(canvas, &cm, &transform);
         }
     }
 }
@@ -360,77 +361,107 @@ fn signed_distance(plane: &Plane, vertex: &Vector3) -> f64 {
 
 
 
-fn intersection(zzz1: &Point, zzz2: &Point, plane: &Plane) {
-    unimplemented!();
+
+
+
+// TODO
+fn intersection(v0: &Vector3, v1: &Vector3, plane: &Plane) -> Vector3 {
+    let _ = v0;   // TODO
+    let _ = v1;   // TODO
+    let _ = plane;   // TODO
+
+    Vector3::new(0.0,0.0,0.0)   // TODO
 }
 
 
 
 
 
+
+
+
+/// Determines the the triangles needed to render the visible part of `triangle`. If `triangle` is
+/// partially within the clipping volume, one or two new triangles that draw just the visible
+/// portion of `triangle` are created.
 ///
-fn clip_triangle_against_plane(triangles: &Vec<Triangle>, plane: &Plane) -> Vec<Triangle> {
-    let mut clipped_triangles = Vec::new();
+/// The triangle (or triangles) necessary to render `triangle` are added to `triangles`, and any
+/// additional vertices required are added to `vertices`. If `triangle` is completely within the
+/// clipping volume, the only change is to add `triangle` to `triangles`. If `triangle` is
+/// completely outside the clipping volume, nothing is added to `triangles` as no rendering is
+/// required.
+fn clip_triangle(triangle: Triangle,
+                 plane: &Plane,
+                 triangles: &mut Vec<Triangle>,
+                 vertices: &mut Vec<Vector3>) {
 
-    for t in triangles {
-        clipped_triangles.append(&mut clip_triangle(&t, plane));
-    }
+    let v0_idx = triangle.vertices.0;
+    let v1_idx = triangle.vertices.1;
+    let v2_idx = triangle.vertices.2;
 
-    clipped_triangles
-}
+    let v0 = vertices.get(v0_idx).unwrap();
+    let v1 = vertices.get(v1_idx).unwrap();
+    let v2 = vertices.get(v2_idx).unwrap();
 
-
-/// Returns a `Vec` containing the triangles needed to render the visible part of the `triangle`
-/// passed. If `triangle` is completely within the clipping volume, it is returned as the only
-/// element. If it is completely outside, the returned `Vec` is empty. If it is partially within,
-/// new triangles that draw just the visible portion of `triangle` are returned.
-fn clip_triangle(triangle: &Triangle, plane: &Plane) -> Vec<Triangle> {
-    let d0 = signed_distance(plane, triangle.vertices.0);
-    let d1 = signed_distance(plane, triangle.vertices.1);
-    let d2 = signed_distance(plane, triangle.vertices.2);
+    let d0 = signed_distance(plane, &v0);
+    let d1 = signed_distance(plane, &v1);
+    let d2 = signed_distance(plane, &v2);
 
     let mut positive = Vec::new();
     let mut negative = Vec::new();
-    if d0 > 0.0 { positive.push(&triangle.vertices.0); }
-        else { negative.push(&triangle.vertices.0); }
-    if d1 > 0.0 { positive.push(&triangle.vertices.1); }
-        else { negative.push(&triangle.vertices.1); }
-    if d2 > 0.0 { positive.push(&triangle.vertices.2); }
-        else { negative.push(&triangle.vertices.2); }
+    if d0 > 0.0 { positive.push(v0_idx); } else { negative.push(v0_idx); }
+    if d1 > 0.0 { positive.push(v1_idx); } else { negative.push(v1_idx); }
+    if d2 > 0.0 { positive.push(v2_idx); } else { negative.push(v2_idx); }
 
     match positive.len() {
-        3 => return vec![*triangle],
+        3 => triangles.push(triangle),
         2 => {
-                let a = positive.pop().unwrap();
-                let b = positive.pop().unwrap();
-                let c = negative.pop().unwrap();
+                let a_idx = positive.pop().unwrap();
+                let b_idx = positive.pop().unwrap();
+                let c_idx = negative.pop().unwrap();
+
+                let a = vertices.get(a_idx).unwrap();
+                let b = vertices.get(b_idx).unwrap();
+                let c = vertices.get(c_idx).unwrap();
 
                 // TODO It may be better to pass first 2 parms as 1st.subtract(2nd)
-                let a_prime = intersection(&a, &c, plane);  // TODO pseudcode awaiting implementation of `intersection`
-                let b_prime = intersection(&b, &c, plane);  // TODO pseudcode awaiting implementation of `intersection`
+                let a_prime = intersection(&a, &b, plane);  // TODO pseudocode awaiting implementation of `intersection`
+                let b_prime = intersection(&b, &c, plane);  // TODO pseudocode awaiting implementation of `intersection`
 
-                return vec![
-                    Triangle::new((a, b, a_prime), Rgb::from_ints(0,0,0)),  // TODO interpolate color
-                    Triangle::new((a_prime, b, b_prime), Rgb::from_ints(0,0,0)),    // TODO interpolate color
-                ];
+                vertices.push(a_prime);
+                let a_prime_idx = vertices.len() - 1;
+                vertices.push(b_prime);
+                let b_prime_idx = vertices.len() - 1;
+
+                triangles.push(Triangle::new((a_idx, b_idx, a_prime_idx),
+                                              Rgb::from_ints(0,0,0)));  // TODO interpolate color
+                triangles.push(Triangle::new((a_prime_idx, b_idx, b_prime_idx),
+                                              Rgb::from_ints(0,0,0)));  // TODO interpolate color
             },
         1 => {
-                let a = positive.pop().unwrap();
-                let b = negative.pop().unwrap();
-                let c = negative.pop().unwrap();
+                let a_idx = positive.pop().unwrap();
+                let b_idx = negative.pop().unwrap();
+                let c_idx = negative.pop().unwrap();
+
+                let a = vertices.get(a_idx).unwrap();
+                let b = vertices.get(b_idx).unwrap();
+                let c = vertices.get(c_idx).unwrap();
 
                 // TODO see above comments
-                let b_prime = intersection(&a, &b, plane);  // TODO pseudcode awaiting implementation of `intersection`
-                let c_prime = intersection(&a, &c, plane);  // TODO pseudcode awaiting implementation of `intersection`
+                let b_prime = intersection(&a, &b, plane);  // TODO pseudocode awaiting implementation of `intersection`
+                let c_prime = intersection(&a, &c, plane);  // TODO pseudocode awaiting implementation of `intersection`
 
-                return vec![Triangle::new((a, b_prime, c_prime), Rgb::from_ints(0,0,0))];    // TODO interpolate color
+                vertices.push(b_prime);
+                let b_prime_idx = vertices.len() - 1;
+                vertices.push(c_prime);
+                let c_prime_idx = vertices.len() - 1;
+
+                triangles.push(Triangle::new((a_idx, b_prime_idx, c_prime_idx),
+                                              Rgb::from_ints(0,0,0)));  // TODO interpolate color
             },
-        0 => return vec![],
+        0 => {},
         _ => panic!("The number of triangle vertices within a clipping plane was not within 0-3")
     }
 }
-
-
 
 
 /// Creates a window, creates a scene containing two cubes and draws them with perspective
@@ -450,7 +481,7 @@ fn main() {
     canvas.clear_canvas(&white);
 
     // Define vertices for the 8 corners of the cube to be rendered.
-    let vertices = [
+    let vertices = vec![
         Vector3::new( 1.0,  1.0,  1.0),  // Vertex 0
         Vector3::new(-1.0,  1.0,  1.0),  // Vertex 1
         Vector3::new(-1.0, -1.0,  1.0),  // Vertex 2
@@ -462,7 +493,7 @@ fn main() {
     ];
 
     // Define triangles with 3-tuples of indexes into the previously defined vertices.
-    let triangles = [
+    let triangles = vec![
         Triangle::new((0, 1, 2), red),
         Triangle::new((0, 2, 3), red),
         Triangle::new((4, 0, 3), green),
@@ -478,9 +509,9 @@ fn main() {
     ];
 
     let cube = Model {
-                    vertices: &vertices,
-                    triangles: &triangles,
-                    bounds_center: &Vector3::new(0.0, 0.0, 0.0),
+                    vertices: vertices,
+                    triangles: triangles,
+                    bounds_center: Vector3::new(0.0, 0.0, 0.0),
                     bounds_radius: f64::sqrt(3.0),
                     };
 
