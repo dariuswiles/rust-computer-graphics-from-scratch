@@ -214,9 +214,9 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
         }
 
         for p in interpolate(left.x, left.y, right.x, right.y) {
-            // TODO Debug
-            if ((p.0.round() as usize) < CANVAS_WIDTH) | ((p.0.round() as usize) >= CANVAS_WIDTH) |
-               ((p.1.round() as usize) < CANVAS_HEIGHT) | ((p.1.round() as usize) >= CANVAS_HEIGHT) {
+            // TODO Entire if is debugging and must eventually be removed
+            if ((p.0.round() as i32) < (-(CANVAS_WIDTH as i32))/2) | ((p.0.round() as i32) >= (CANVAS_WIDTH as i32)/2) |
+               ((p.1.round() as i32) < (-(CANVAS_HEIGHT as i32))/2) | ((p.1.round() as i32) >= (CANVAS_HEIGHT as i32)/2) {
                println!("Tried to draw outside canvas with x, y = {}, {} and color {:?}", p.0, p.1, &color);
             }
 
@@ -234,9 +234,9 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
             top = p0;
         }
         for p in interpolate(bottom.y, bottom.x, top.y, top.x) {
-            // TODO Debug
-            if ((p.1.round() as usize) < CANVAS_WIDTH) | ((p.1.round() as usize) >= CANVAS_WIDTH) |
-               ((p.0.round() as usize) < CANVAS_HEIGHT) | ((p.0.round() as usize) >= CANVAS_HEIGHT) {
+            // TODO Entire if is debugging and must eventually be removed
+            if ((p.1.round() as i32) < (-(CANVAS_WIDTH as i32))/2) | ((p.1.round() as i32) >= (CANVAS_WIDTH as i32)/2) |
+               ((p.0.round() as i32) < (-(CANVAS_HEIGHT as i32))/2) | ((p.0.round() as i32) >= (CANVAS_HEIGHT as i32)/2) {
                println!("Tried to draw outside canvas with x, y = {}, {} and color {:?}", p.1, p.0, &color);
             }
 
@@ -278,19 +278,7 @@ fn draw_wireframe_triangle (canvas: &mut Canvas, p0: &Point, p1: &Point, p2: &Po
 /// assert_eq!(signed_distance(&plane, &point), 2.0);
 /// ```
 fn signed_distance(plane: &Plane, vertex: &Vector4) -> f64 {
-    print!("signed_distance called with {:?}\t{:?}", plane, vertex);
-
-    // TODO debug - delete in favor of commented version below.
-    let tmp_debug = vertex.dot(&Vector4::from_vector3(&plane.normal, 1.0)) + plane.distance;
-
-    println!("\treturning = {}", tmp_debug);
-
-    return tmp_debug;
-
-//     vertex.x * plane.normal.x +
-//     vertex.y * plane.normal.y +
-//     vertex.z * plane.normal.z +
-//     plane.distance
+    vertex.dot(&Vector4::from_vector3(&plane.normal, 1.0)) + plane.distance
 }
 
 
@@ -343,7 +331,9 @@ fn clip_triangle(triangle: Triangle,
     if d1 > 0.0 { positive.push(v1_idx); } else { negative.push(v1_idx); }
     if d2 > 0.0 { positive.push(v2_idx); } else { negative.push(v2_idx); }
 
-    println!("positive.len() = {}", positive.len());
+    println!("In clip_triangle, distances are {}\t{}\t{}", d0, d1, d2);
+
+    //// TODO The following logic never triggers, even when a cube is partially outside the canvas. Need to investigate why.
 
     match positive.len() {
         3 => triangles.push(triangle),
@@ -410,7 +400,6 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
     // `None` immediately.
     let transformed_center = transform.multiply_vector(
                                 &Vector4::from_vector3(&model.bounds_center, 1.0));
-    println!("transformed_center = {:?}", &transformed_center);
 
     for cp in clipping_planes {
         let distance = Vector4::from_vector3(&cp.normal, 1.0).dot(&transformed_center)
@@ -433,7 +422,6 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
     let mut triangles = model.triangles.clone();
 
     for cp in clipping_planes {
-        println!("\n\n****** Next clipping plane ******\n");
         let mut new_triangles = Vec::new();
         for t in triangles {
             clip_triangle(t, &cp, &mut new_triangles, &mut modified_vertices);
@@ -448,7 +436,6 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
         vertices_v3.push(Vector3::from_vector4(&v));
     }
 
-
     Some (Model {
             vertices: vertices_v3,
             triangles: triangles.to_vec(),
@@ -461,15 +448,13 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
 /// Renders the `Model` passed by iterating through the list of triangles and vertices
 /// that it contains, using the `transform` provided to transform each vertex into camera space,
 /// then calling `render_triangle` to draw the triangle on the 2D canvas.
-fn render_instance(canvas: &mut Canvas, model: &Model, transform: &Matrix4x4) {
+fn render_instance(canvas: &mut Canvas, model: &Model) {
     let mut projected = vec![];
 
     // The `vertices` are defined in the 3D world coordinates, so project each vertex onto the
     // viewport, resulting in a vector of 2D viewport `Point`s.
     for v in &model.vertices {
-        let vertex_h = Vector4::from_vector3(&v, 1.0);
-
-        projected.push(project_vertex(&transform.multiply_vector(&vertex_h)));
+        projected.push(project_vertex(&Vector4::from_vector3(&v, 1.0)));
     }
 
     // Render each triangle by passing coordinates of each corner as a 2D `Point` on the viewport.
@@ -496,7 +481,7 @@ fn render_scene(canvas: &mut Canvas, camera: &Camera, instances: &[ModelInstance
         let transform = camera_matrix.multiply_matrix4x4(&mi.transform);
         let clipped_model = transform_and_clip(&camera.clipping_planes, &mi.model, &transform);
         if let Some(cm) = clipped_model {
-            render_instance(canvas, &cm, &transform);
+            render_instance(canvas, &cm);
         }
     }
 }
@@ -552,26 +537,30 @@ fn main() {
                     bounds_radius: f64::sqrt(3.0),
                     };
 
+
     let instances = [ModelInstance::new(
                             &cube,
                             Vector3::new(-1.5, 0.0, 7.0),
-                            Matrix4x4::identity(),
+//                             Matrix4x4::identity(), // TODO Book rotation
+                            Matrix4x4::new_oy_rotation_matrix(45.0),
                             0.75,
                         ),
-//                      ModelInstance::new(
-//                             &cube,
-//                             Vector3::new(1.25, 2.5, 7.5),
+                     ModelInstance::new(
+                            &cube,
+                            Vector3::new(1.25, 2.5, 7.5),
+//                             Matrix4x4::new_oy_rotation_matrix(195.0),  // TODO Book rotation
+                         Matrix4x4::identity(),
+                               1.0,
+                        ),
+                     ModelInstance::new(
+                            &cube,
+//                             Vector3::new(-2.8, 1.0, 2.1), // TODO My coordinates that put object partially within clipping volume
 //                             Matrix4x4::new_oy_rotation_matrix(195.0),
-//                             1.0,
-//                         ),
-//                      ModelInstance::new(
-//                             &cube,
-// //                             Vector3::new(-2.8, 1.0, 2.1), // TODO My coordinates that put object partially within clipping volume
-//                             Vector3::new(-0.0, 0.0, -10.0),  // TODO Book coords
-//                             Matrix4x4::new_oy_rotation_matrix(195.0),
-//                             1.0, // TODO Book scaling
-// //                             0.15,  // TODO My scaling
-//                         ),
+//                             0.15,  // TODO My scaling
+                            Vector3::new(-0.0, 0.0, -10.0),  // TODO Book coords
+                            Matrix4x4::new_oy_rotation_matrix(90.0),
+                            1.0, // TODO Book scaling
+                        ),
                     ];
 
     let s2 = SQRT_2 / 2.0;
