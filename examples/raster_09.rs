@@ -331,7 +331,7 @@ fn clip_triangle(triangle: Triangle,
     if d1 > 0.0 { positive.push(v1_idx); } else { negative.push(v1_idx); }
     if d2 > 0.0 { positive.push(v2_idx); } else { negative.push(v2_idx); }
 
-    println!("In clip_triangle, distances are {}\t{}\t{}; counts for +, - are {}, {}",
+    println!("In clip_triangle, distances are {}\t{}\t{}; positive & negative {} & {}",
                         d0, d1, d2, positive.len(), negative.len());
 
     //// TODO The following logic never triggers, even when a cube is partially outside the canvas. Need to investigate why.
@@ -580,27 +580,47 @@ fn main() {
                     ],
                 };
 
+//     render_scene(&mut canvas, &camera, &instances);
 
 
 
-//     let test_triangle = Triangle::new((0, 1, 2), red);
-//     let test_plane = Plane { normal: Vector3::new(0.0, -s2, s2), distance: 0.0 };  // Top
-//     let mut test_vertices = vec![
-//         Vector4::new(-0.8, 0.8, 2.0, 1.0),  // Vertex 0
-//         Vector4::new( 0.8, 0.8, 2.0, 1.0),  // Vertex 1
-//         Vector4::new( 0.0, -0.8, 2.0, 1.0),  // Vertex 2
-//     ];
-//
-//     let mut test_triangles: Vec<Triangle> = vec![];
-//
-//     clip_triangle(test_triangle, &test_plane, &mut test_triangles, &mut test_vertices);
+    let test_vertices = vec![
+        Vector3::new(-0.8, 0.8, 2.0),  // Vertex 0
+        Vector3::new( 0.8, 0.8, 2.0),  // Vertex 1
+        Vector3::new( 0.0, -0.8, 2.0),  // Vertex 2
+    ];
 
+    let test_triangles = vec![Triangle::new((0, 1, 2), red)];
 
+    let test_triangle = Model {
+                    vertices: test_vertices,
+                    triangles: test_triangles,
+                    bounds_center: Vector3::new(0.0, 0.0, 0.0),
+                    bounds_radius: 2.01,
+                    };
 
+    let test_instances = [ModelInstance::new(
+                            &test_triangle,
+                            Vector3::new(0.0, -1.6, 6.0),  // Position
+                            Matrix4x4::identity(), // No rotation
+                            1.0,  // Scaling
+                        ),
+                        ModelInstance::new(
+                            &test_triangle,
+                            Vector3::new(0.0, -1.6, 4.0),  // Position
+                            Matrix4x4::identity(), // No rotation
+                            1.0,  // Scaling
+                        ),
+                        ModelInstance::new(
+                            &test_triangle,
+                            Vector3::new(0.0, -1.6, 2.0),  // Position
+                            Matrix4x4::identity(), // No rotation
+                            1.0,  // Scaling
+                        ),
+                        ];
 
+    render_scene(&mut canvas, &camera, &test_instances);
 
-
-    render_scene(&mut canvas, &camera, &instances);
 
     canvas.display_until_exit();
 }
