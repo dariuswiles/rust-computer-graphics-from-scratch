@@ -214,7 +214,7 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
         }
 
         for p in interpolate(left.x, left.y, right.x, right.y) {
-            // TODO Entire if is debugging and must eventually be removed
+            // TODO Entire "if" is debugging and must eventually be removed
             if ((p.0.round() as i32) < (-(CANVAS_WIDTH as i32))/2) | ((p.0.round() as i32) >= (CANVAS_WIDTH as i32)/2) |
                ((p.1.round() as i32) < (-(CANVAS_HEIGHT as i32))/2) | ((p.1.round() as i32) >= (CANVAS_HEIGHT as i32)/2) {
                println!("Tried to draw outside canvas with x, y = {}, {} and color {:?}", p.0, p.1, &color);
@@ -234,7 +234,7 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
             top = p0;
         }
         for p in interpolate(bottom.y, bottom.x, top.y, top.x) {
-            // TODO Entire if is debugging and must eventually be removed
+            // TODO Entire "if" is debugging and must eventually be removed
             if ((p.1.round() as i32) < (-(CANVAS_WIDTH as i32))/2) | ((p.1.round() as i32) >= (CANVAS_WIDTH as i32)/2) |
                ((p.0.round() as i32) < (-(CANVAS_HEIGHT as i32))/2) | ((p.0.round() as i32) >= (CANVAS_HEIGHT as i32)/2) {
                println!("Tried to draw outside canvas with x, y = {}, {} and color {:?}", p.1, p.0, &color);
@@ -278,7 +278,7 @@ fn draw_wireframe_triangle (canvas: &mut Canvas, p0: &Point, p1: &Point, p2: &Po
 /// assert_eq!(signed_distance(&plane, &point), 2.0);
 /// ```
 fn signed_distance(plane: &Plane, vertex: &Vector4) -> f64 {
-    vertex.dot(&Vector4::from_vector3(&plane.normal, 1.0)) + plane.distance
+    vertex.dot(&Vector4::from_vector3(&plane.normal, 0.0)) + plane.distance
 }
 
 
@@ -290,7 +290,7 @@ fn signed_distance(plane: &Plane, vertex: &Vector4) -> f64 {
 fn intersection(v0: &Vector4, v1: &Vector4, plane: &Plane) -> Vector4 {
     println!("intersection called with {:?}\t{:?}\t{:?}", v0, v1, plane);
 
-    let normal = Vector4::from_vector3(&plane.normal, 1.0);
+    let normal = Vector4::from_vector3(&plane.normal, 0.0);
 
     let t = (-plane.distance - &normal.dot(v0)) /
             (&normal.dot(&v1.subtract(v0)));
@@ -331,7 +331,8 @@ fn clip_triangle(triangle: Triangle,
     if d1 > 0.0 { positive.push(v1_idx); } else { negative.push(v1_idx); }
     if d2 > 0.0 { positive.push(v2_idx); } else { negative.push(v2_idx); }
 
-    println!("In clip_triangle, distances are {}\t{}\t{}", d0, d1, d2);
+    println!("In clip_triangle, distances are {}\t{}\t{}; counts for +, - are {}, {}",
+                        d0, d1, d2, positive.len(), negative.len());
 
     //// TODO The following logic never triggers, even when a cube is partially outside the canvas. Need to investigate why.
 
@@ -399,10 +400,10 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
     // completely outside any of the clipping planes. If so, discard the whole `model' by returning
     // `None` immediately.
     let transformed_center = transform.multiply_vector(
-                                &Vector4::from_vector3(&model.bounds_center, 1.0));
+                                &Vector4::from_vector3(&model.bounds_center, 0.0));
 
     for cp in clipping_planes {
-        let distance = Vector4::from_vector3(&cp.normal, 1.0).dot(&transformed_center)
+        let distance = Vector4::from_vector3(&cp.normal, 0.0).dot(&transformed_center)
                             + cp.distance;
         if distance < -model.bounds_radius {
             return None;
@@ -478,6 +479,7 @@ fn render_scene(canvas: &mut Canvas, camera: &Camera, instances: &[ModelInstance
             ));
 
     for mi in instances {
+        println!("\n\nNext instance");
         let transform = camera_matrix.multiply_matrix4x4(&mi.transform);
         let clipped_model = transform_and_clip(&camera.clipping_planes, &mi.model, &transform);
         if let Some(cm) = clipped_model {
@@ -577,6 +579,26 @@ fn main() {
                         Plane { normal: Vector3::new(0.0, s2, s2), distance: 0.0 },  // Bottom
                     ],
                 };
+
+
+
+
+//     let test_triangle = Triangle::new((0, 1, 2), red);
+//     let test_plane = Plane { normal: Vector3::new(0.0, -s2, s2), distance: 0.0 };  // Top
+//     let mut test_vertices = vec![
+//         Vector4::new(-0.8, 0.8, 2.0, 1.0),  // Vertex 0
+//         Vector4::new( 0.8, 0.8, 2.0, 1.0),  // Vertex 1
+//         Vector4::new( 0.0, -0.8, 2.0, 1.0),  // Vertex 2
+//     ];
+//
+//     let mut test_triangles: Vec<Triangle> = vec![];
+//
+//     clip_triangle(test_triangle, &test_plane, &mut test_triangles, &mut test_vertices);
+
+
+
+
+
 
     render_scene(&mut canvas, &camera, &instances);
 
