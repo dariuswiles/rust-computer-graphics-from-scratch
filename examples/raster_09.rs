@@ -20,9 +20,9 @@ const DISTANCE_FROM_CAMERA_TO_VIEWPORT: f64 = 1.0;
 
 /// General struct to hold vertex and triangle data for any model shape.
 struct Model {
-    vertices: Vec<Vector3>,
+    vertices: Vec<Vector4>,
     triangles: Vec<Triangle>,
-    bounds_center: Vector3,
+    bounds_center: Vector4,
     bounds_radius: f64,
 }
 
@@ -36,7 +36,7 @@ struct Model {
 struct ModelInstance<'a> {
     model: &'a Model,
     #[allow(dead_code)]
-    position: Vector3,
+    position: Vector4,
     #[allow(dead_code)]
     orientation: Matrix4x4,
     #[allow(dead_code)]
@@ -48,9 +48,9 @@ impl<'a> ModelInstance<'a> {
     /// Creates and returns a new `ModelInstance` object, and automatically generates and stores a
     /// `transform` matrix that performs the combination of the translation, orientation and
     /// scaling operations.
-    fn new(model: &'a Model, position: Vector3, orientation: Matrix4x4, scale: f64) -> Self {
+    fn new(model: &'a Model, position: Vector4, orientation: Matrix4x4, scale: f64) -> Self {
         let transform =
-            Matrix4x4::new_translation_matrix(&position)
+            Matrix4x4::new_translation_matrix_from_vec4(&position)
             .multiply_matrix4x4(
                 &orientation.multiply_matrix4x4(
                     &Matrix4x4::new_scaling_matrix(scale)));
@@ -69,7 +69,7 @@ impl<'a> ModelInstance<'a> {
 /// A camera, consisting of a position in 3D space, and an orientation. The latter is expressed in
 /// homogenous coordinates, i.e., a 4x4 matrix.
 struct Camera {
-    position: Vector3,
+    position: Vector4,
     orientation: Matrix4x4,
     clipping_planes: [Plane; 5]
 }
@@ -114,7 +114,7 @@ impl Triangle {
 /// be a unit vector, i.e., its length should be 1.
 #[derive(Clone, Copy, Debug)]
 struct Plane {
-    pub normal: Vector3,
+    pub normal: Vector4,
     pub distance: f64,
 }
 
@@ -259,13 +259,13 @@ fn draw_wireframe_triangle (canvas: &mut Canvas, p0: &Point, p1: &Point, p2: &Po
 ///
 /// # Examples
 /// ```
-/// let plane = Plane { normal: Vector3::new(0.0, 0.0, 1.0), distance: -1.0 };
-/// let point = Vector3::new(0.0, 0.0, 3.0);
+/// let plane = Plane { normal: Vector4::new(0.0, 0.0, 1.0, 0.0), distance: -1.0 };
+/// let point = Vector4::new(0.0, 0.0, 3.0, 1.0);
 ///
 /// assert_eq!(signed_distance(&plane, &point), 2.0);
 /// ```
 fn signed_distance(plane: &Plane, vertex: &Vector4) -> f64 {
-    vertex.dot(&Vector4::from_vector3(&plane.normal, 0.0)) + plane.distance
+    vertex.dot(&plane.normal) + plane.distance
 }
 
 
@@ -275,10 +275,8 @@ fn signed_distance(plane: &Plane, vertex: &Vector4) -> f64 {
 ///
 /// Will panic with a divide by zero if the line `v0` to `v1` is parallel to `plane`.
 fn intersection(v0: &Vector4, v1: &Vector4, plane: &Plane) -> Vector4 {
-    let normal = Vector4::from_vector3(&plane.normal, 0.0);
-
-    let t = (-plane.distance - &normal.dot(v0)) /
-            (&normal.dot(&v1.subtract(v0)));
+    let t = (-plane.distance - &plane.normal.dot(v0)) /
+            (&plane.normal.dot(&v1.subtract(v0)));
 
     v0.add(&v1.subtract(v0).multiply_by(t))
 }
@@ -376,12 +374,10 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
     // Apply `transform` to the center position of the bounding sphere and see if the instance is
     // completely outside any of the clipping planes. If so, discard the whole `model' by returning
     // `None` immediately.
-    let transformed_center = transform.multiply_vector(
-                                &Vector4::from_vector3(&model.bounds_center, 0.0));
+    let transformed_center = transform.multiply_vector(&model.bounds_center);
 
     for cp in clipping_planes {
-        let distance = Vector4::from_vector3(&cp.normal, 0.0).dot(&transformed_center)
-                            + cp.distance;
+        let distance = &cp.normal.dot(&transformed_center) + cp.distance;
         if distance < -model.bounds_radius {
             return None;
         }
@@ -391,7 +387,7 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
 
     // Apply modelview transform to each vertex in the model instance.
     for v in &model.vertices {
-        modified_vertices.push(transform.multiply_vector(&Vector4::from_vector3(&v, 1.0)));
+        modified_vertices.push(transform.multiply_vector(&v));
     }
 
     // Loop through every clipping plane clipping all the model vertices for each. The output of
@@ -408,16 +404,10 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
         triangles = new_triangles;
     }
 
-    // TODO Remove by changing all vertices to Vector4, not V3
-    let mut vertices_v3 = Vec::new();
-    for v in modified_vertices {
-        vertices_v3.push(Vector3::from_vector4(&v));
-    }
-
     Some (Model {
-            vertices: vertices_v3,
+            vertices: modified_vertices,
             triangles: triangles.to_vec(),
-            bounds_center: Vector3::from_vector4(&transformed_center),
+            bounds_center: transformed_center,
             bounds_radius: model.bounds_radius,
     })
 }
@@ -432,7 +422,7 @@ fn render_instance(canvas: &mut Canvas, model: &Model) {
     // The `vertices` are defined in the 3D world coordinates, so project each vertex onto the
     // viewport, resulting in a vector of 2D viewport `Point`s.
     for v in &model.vertices {
-        projected.push(project_vertex(&Vector4::from_vector3(&v, 1.0)));
+        projected.push(project_vertex(&v));
     }
 
     // Render each triangle by passing coordinates of each corner as a 2D `Point` on the viewport.
@@ -451,7 +441,7 @@ fn render_scene(canvas: &mut Canvas, camera: &Camera, instances: &[ModelInstance
     let camera_matrix =
         camera.orientation
             .transpose()
-            .multiply_matrix4x4(&Matrix4x4::new_translation_matrix(
+            .multiply_matrix4x4(&Matrix4x4::new_translation_matrix_from_vec4(
                 &camera.position.multiply_by(-1.0),
             ));
 
@@ -482,14 +472,14 @@ fn main() {
 
     // Define vertices for the 8 corners of the cube to be rendered.
     let vertices = vec![
-        Vector3::new( 1.0,  1.0,  1.0),  // Vertex 0
-        Vector3::new(-1.0,  1.0,  1.0),  // Vertex 1
-        Vector3::new(-1.0, -1.0,  1.0),  // Vertex 2
-        Vector3::new( 1.0, -1.0,  1.0),  // Vertex 3
-        Vector3::new( 1.0,  1.0, -1.0),  // Vertex 4
-        Vector3::new(-1.0,  1.0, -1.0),  // Vertex 5
-        Vector3::new(-1.0, -1.0, -1.0),  // Vertex 6
-        Vector3::new( 1.0, -1.0, -1.0),  // Vertex 7
+        Vector4::new( 1.0,  1.0,  1.0, 1.0),  // Vertex 0
+        Vector4::new(-1.0,  1.0,  1.0, 1.0),  // Vertex 1
+        Vector4::new(-1.0, -1.0,  1.0, 1.0),  // Vertex 2
+        Vector4::new( 1.0, -1.0,  1.0, 1.0),  // Vertex 3
+        Vector4::new( 1.0,  1.0, -1.0, 1.0),  // Vertex 4
+        Vector4::new(-1.0,  1.0, -1.0, 1.0),  // Vertex 5
+        Vector4::new(-1.0, -1.0, -1.0, 1.0),  // Vertex 6
+        Vector4::new( 1.0, -1.0, -1.0, 1.0),  // Vertex 7
     ];
 
     // Define triangles with 3-tuples of indexes into the previously defined vertices.
@@ -511,26 +501,26 @@ fn main() {
     let cube = Model {
                     vertices: vertices,
                     triangles: triangles,
-                    bounds_center: Vector3::new(0.0, 0.0, 0.0),
+                    bounds_center: Vector4::new(0.0, 0.0, 0.0, 1.0),
                     bounds_radius: f64::sqrt(3.0),
                     };
 
 
     let instances = [ModelInstance::new(
                             &cube,
-                            Vector3::new(-1.5, 0.0, 7.0),
+                            Vector4::new(-1.5, 0.0, 7.0, 1.0),
                             Matrix4x4::identity(),
                             0.75,
                         ),
                      ModelInstance::new(
                             &cube,
-                            Vector3::new(1.25, 2.5, 7.5),
+                            Vector4::new(1.25, 2.5, 7.5, 1.0),
                             Matrix4x4::new_oy_rotation_matrix(195.0),
                             1.0,
                         ),
                      ModelInstance::new(
                             &cube,
-                            Vector3::new(1.0, -1.0, 4.0), // Object moved to show clipping
+                            Vector4::new(1.0, -1.0, 4.0, 1.0), // Object moved to show clipping
                             Matrix4x4::new_oy_rotation_matrix(195.0),
                             1.0,
                         ),
@@ -546,14 +536,14 @@ fn main() {
     let s_z = 1.0 / f64::sqrt(5.0) - 0.005;  // Slope to use for z axis of planes
     let s_xy = 2.0 / f64::sqrt(5.0)  - 0.005;  // Slope to use for x and y axes of planes
     let camera = Camera {
-                    position: Vector3::new(-3.0, 1.0, 2.0),
+                    position: Vector4::new(-3.0, 1.0, 2.0, 1.0),
                     orientation: Matrix4x4::new_oy_rotation_matrix(-30.0),
                     clipping_planes: [
-                        Plane { normal: Vector3::new(0.0, 0.0, 1.0), distance: -1.0 },  // Near
-                        Plane { normal: Vector3::new(s_xy, 0.0, s_z), distance: 0.0 },  // Left
-                        Plane { normal: Vector3::new(-s_xy, 0.0, s_z), distance: 0.0 },  // Right
-                        Plane { normal: Vector3::new(0.0, -s_xy, s_z), distance: 0.0 },  // Top
-                        Plane { normal: Vector3::new(0.0, s_xy, s_z), distance: 0.0 },  // Bottom
+                        Plane { normal: Vector4::new(0.0, 0.0, 1.0, 0.0), distance: -1.0 }, // Near
+                        Plane { normal: Vector4::new(s_xy, 0.0, s_z, 0.0), distance: 0.0 }, // Left
+                        Plane { normal: Vector4::new(-s_xy, 0.0, s_z, 0.0), distance: 0.0 }, // Rght
+                        Plane { normal: Vector4::new(0.0, -s_xy, s_z, 0.0), distance: 0.0 }, // Top
+                        Plane { normal: Vector4::new(0.0, s_xy, s_z, 0.0), distance: 0.0 }, // Btm
                     ],
                 };
 
