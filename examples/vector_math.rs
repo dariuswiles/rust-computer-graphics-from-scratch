@@ -139,6 +139,21 @@ impl Matrix4x4 {
     }
 
 
+    /// Creates a new 4x4 transform matrix representing the 3D translation passed as a `Vector4`.
+    ///
+    #[allow(dead_code)]
+    pub fn new_translation_matrix_from_vec4(translation: &Vector4) -> Matrix4x4 {
+
+        Self {
+            a1: 1.0, b1: 0.0, c1: 0.0, d1: translation.x,
+            a2: 0.0, b2: 1.0, c2: 0.0, d2: translation.y,
+            a3: 0.0, b3: 0.0, c3: 1.0, d3: translation.z,
+            a4: 0.0, b4: 0.0, c4: 0.0, d4: 1.0,
+        }
+    }
+
+
+
    /// Creates a new 4x4 transform matrix representing the scaling passed as an `f64`.
     #[allow(dead_code)]
     pub fn new_scaling_matrix(sc: f64) -> Matrix4x4 {
