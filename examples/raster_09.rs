@@ -4,7 +4,6 @@
 //!
 //! I am not affiliated with Gabriel or his book in any way.
 
-use std::f64::consts::SQRT_2;
 use std::iter::Iterator;
 use std::vec::Vec;
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
@@ -214,12 +213,6 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
         }
 
         for p in interpolate(left.x, left.y, right.x, right.y) {
-            // TODO Entire "if" is debugging and must eventually be removed
-            if ((p.0.round() as i32) < (-(CANVAS_WIDTH as i32))/2) | ((p.0.round() as i32) >= (CANVAS_WIDTH as i32)/2) |
-               ((p.1.round() as i32) < (-(CANVAS_HEIGHT as i32))/2) | ((p.1.round() as i32) >= (CANVAS_HEIGHT as i32)/2) {
-               println!("Tried to draw outside canvas with x, y = {}, {} and color {:?}", p.0, p.1, &color);
-            }
-
             canvas.put_pixel(p.0.round() as i32, p.1.round() as i32, &color);
         }
     } else {
@@ -234,12 +227,6 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
             top = p0;
         }
         for p in interpolate(bottom.y, bottom.x, top.y, top.x) {
-            // TODO Entire "if" is debugging and must eventually be removed
-            if ((p.1.round() as i32) < (-(CANVAS_WIDTH as i32))/2) | ((p.1.round() as i32) >= (CANVAS_WIDTH as i32)/2) |
-               ((p.0.round() as i32) < (-(CANVAS_HEIGHT as i32))/2) | ((p.0.round() as i32) >= (CANVAS_HEIGHT as i32)/2) {
-               println!("Tried to draw outside canvas with x, y = {}, {} and color {:?}", p.1, p.0, &color);
-            }
-
             canvas.put_pixel(p.1.round() as i32, p.0.round() as i32, &color);
         }
     }
@@ -288,8 +275,6 @@ fn signed_distance(plane: &Plane, vertex: &Vector4) -> f64 {
 ///
 /// Will panic with a divide by zero if the line `v0` to `v1` is parallel to `plane`.
 fn intersection(v0: &Vector4, v1: &Vector4, plane: &Plane) -> Vector4 {
-    println!("intersection called with {:?}\t{:?}\t{:?}", v0, v1, plane);
-
     let normal = Vector4::from_vector3(&plane.normal, 0.0);
 
     let t = (-plane.distance - &normal.dot(v0)) /
@@ -331,11 +316,6 @@ fn clip_triangle(triangle: Triangle,
     if d1 > 0.0 { positive.push(v1_idx); } else { negative.push(v1_idx); }
     if d2 > 0.0 { positive.push(v2_idx); } else { negative.push(v2_idx); }
 
-    println!("In clip_triangle, distances are {}\t{}\t{}; positive & negative {} & {}",
-                        d0, d1, d2, positive.len(), negative.len());
-
-    //// TODO The following logic never triggers, even when a cube is partially outside the canvas. Need to investigate why.
-
     match positive.len() {
         3 => triangles.push(triangle),
         2 => {
@@ -347,7 +327,7 @@ fn clip_triangle(triangle: Triangle,
                 let b = vertices.get(b_idx).unwrap();
                 let c = vertices.get(c_idx).unwrap();
 
-                let a_prime = intersection(&a, &b, plane);
+                let a_prime = intersection(&a, &c, plane);
                 let b_prime = intersection(&b, &c, plane);
 
                 vertices.push(a_prime);
@@ -355,10 +335,8 @@ fn clip_triangle(triangle: Triangle,
                 vertices.push(b_prime);
                 let b_prime_idx = vertices.len() - 1;
 
-                triangles.push(Triangle::new((a_idx, b_idx, a_prime_idx),
-                                              Rgb::from_ints(0,0,0)));  // TODO interpolate color
-                triangles.push(Triangle::new((a_prime_idx, b_idx, b_prime_idx),
-                                              Rgb::from_ints(0,0,0)));  // TODO interpolate color
+                triangles.push(Triangle::new((a_idx, b_idx, a_prime_idx), triangle.color));
+                triangles.push(Triangle::new((a_prime_idx, b_idx, b_prime_idx), triangle.color));
             },
         1 => {
                 let a_idx = positive.pop().unwrap();
@@ -377,8 +355,7 @@ fn clip_triangle(triangle: Triangle,
                 vertices.push(c_prime);
                 let c_prime_idx = vertices.len() - 1;
 
-                triangles.push(Triangle::new((a_idx, b_prime_idx, c_prime_idx),
-                                              Rgb::from_ints(0,0,0)));  // TODO interpolate color
+                triangles.push(Triangle::new((a_idx, b_prime_idx, c_prime_idx), triangle.color));
             },
         0 => {},
         _ => panic!("Internal error: unexpected number of triangle vertices in clipping volume"),
@@ -479,7 +456,6 @@ fn render_scene(canvas: &mut Canvas, camera: &Camera, instances: &[ModelInstance
             ));
 
     for mi in instances {
-        println!("\n\nNext instance");
         let transform = camera_matrix.multiply_matrix4x4(&mi.transform);
         let clipped_model = transform_and_clip(&camera.clipping_planes, &mi.model, &transform);
         if let Some(cm) = clipped_model {
@@ -543,84 +519,45 @@ fn main() {
     let instances = [ModelInstance::new(
                             &cube,
                             Vector3::new(-1.5, 0.0, 7.0),
-//                             Matrix4x4::identity(), // TODO Book rotation
-                            Matrix4x4::new_oy_rotation_matrix(45.0),
+                            Matrix4x4::identity(),
                             0.75,
                         ),
                      ModelInstance::new(
                             &cube,
                             Vector3::new(1.25, 2.5, 7.5),
-//                             Matrix4x4::new_oy_rotation_matrix(195.0),  // TODO Book rotation
-                         Matrix4x4::identity(),
-                               1.0,
+                            Matrix4x4::new_oy_rotation_matrix(195.0),
+                            1.0,
                         ),
                      ModelInstance::new(
                             &cube,
-//                             Vector3::new(-2.8, 1.0, 2.1), // TODO My coordinates that put object partially within clipping volume
-//                             Matrix4x4::new_oy_rotation_matrix(195.0),
-//                             0.15,  // TODO My scaling
-                            Vector3::new(-0.0, 0.0, -10.0),  // TODO Book coords
-                            Matrix4x4::new_oy_rotation_matrix(90.0),
-                            1.0, // TODO Book scaling
+                            Vector3::new(1.0, -1.0, 4.0), // Object moved to show clipping
+                            Matrix4x4::new_oy_rotation_matrix(195.0),
+                            1.0,
                         ),
                     ];
 
-    let s2 = SQRT_2 / 2.0;
+    // Chapter 11 of the book defines the planes using a field of view of 90° "for simplicity", but
+    // this requires reworking the viewport size. Instead, we define planes that are correct for
+    // the viewport we used for all previous examples, maintaining a FOV of about 53°.
+    //
+    // The fudge factor subtracted from `s_z` and `s_xy` narrows the field of view so that the
+    // clipping occurs a pixel or two inside the clipping volume. The resulting white border
+    // makes the additional lines added by the clipping routines easier to see.
+    let s_z = 1.0 / f64::sqrt(5.0) - 0.005;  // Slope to use for z axis of planes
+    let s_xy = 2.0 / f64::sqrt(5.0)  - 0.005;  // Slope to use for x and y axes of planes
     let camera = Camera {
-//                     position: Vector3::new(-3.0, 1.0, 2.0),  // TODO Book position
-//                     orientation: Matrix4x4::new_oy_rotation_matrix(-30.0),   // TODO Book orientation
-                    position: Vector3::new(0.0, 0.0, 0.0),  // TODO Debug
-                    orientation: Matrix4x4::new_oy_rotation_matrix(0.0), // TODO Debug
+                    position: Vector3::new(-3.0, 1.0, 2.0),
+                    orientation: Matrix4x4::new_oy_rotation_matrix(-30.0),
                     clipping_planes: [
                         Plane { normal: Vector3::new(0.0, 0.0, 1.0), distance: -1.0 },  // Near
-                        Plane { normal: Vector3::new(s2, 0.0, s2), distance: 0.0 },  // Left
-                        Plane { normal: Vector3::new(-s2, 0.0, s2), distance: 0.0 },  // Right
-                        Plane { normal: Vector3::new(0.0, -s2, s2), distance: 0.0 },  // Top
-                        Plane { normal: Vector3::new(0.0, s2, s2), distance: 0.0 },  // Bottom
+                        Plane { normal: Vector3::new(s_xy, 0.0, s_z), distance: 0.0 },  // Left
+                        Plane { normal: Vector3::new(-s_xy, 0.0, s_z), distance: 0.0 },  // Right
+                        Plane { normal: Vector3::new(0.0, -s_xy, s_z), distance: 0.0 },  // Top
+                        Plane { normal: Vector3::new(0.0, s_xy, s_z), distance: 0.0 },  // Bottom
                     ],
                 };
 
-//     render_scene(&mut canvas, &camera, &instances);
-
-
-
-    let test_vertices = vec![
-        Vector3::new(-0.8, 0.8, 2.0),  // Vertex 0
-        Vector3::new( 0.8, 0.8, 2.0),  // Vertex 1
-        Vector3::new( 0.0, -0.8, 2.0),  // Vertex 2
-    ];
-
-    let test_triangles = vec![Triangle::new((0, 1, 2), red)];
-
-    let test_triangle = Model {
-                    vertices: test_vertices,
-                    triangles: test_triangles,
-                    bounds_center: Vector3::new(0.0, 0.0, 0.0),
-                    bounds_radius: 2.01,
-                    };
-
-    let test_instances = [ModelInstance::new(
-                            &test_triangle,
-                            Vector3::new(0.0, -1.6, 6.0),  // Position
-                            Matrix4x4::identity(), // No rotation
-                            1.0,  // Scaling
-                        ),
-                        ModelInstance::new(
-                            &test_triangle,
-                            Vector3::new(0.0, -1.6, 4.0),  // Position
-                            Matrix4x4::identity(), // No rotation
-                            1.0,  // Scaling
-                        ),
-                        ModelInstance::new(
-                            &test_triangle,
-                            Vector3::new(0.0, -1.6, 2.0),  // Position
-                            Matrix4x4::identity(), // No rotation
-                            1.0,  // Scaling
-                        ),
-                        ];
-
-    render_scene(&mut canvas, &camera, &test_instances);
-
+    render_scene(&mut canvas, &camera, &instances);
 
     canvas.display_until_exit();
 }
