@@ -99,12 +99,12 @@ fn draw_filled_triangle (canvas: &mut Canvas, p0: &Point, p1: &Point, p2: &Point
     // Interpolate with the `y` coordinates as the independent variable because we want the value
     // `x` for each row (rather than looping over `x` to find `y`). The results are `vec`s of
     // `(f64, f64)`, representing `(y, x)` coordinates. Also interpolate intensity values.
-    let x01 = interpolate(p0.y, p0.x, p1.y, p1.x);
-    let h01 = interpolate(p0.y, p0.h, p1.y, p1.h);
-    let x12 = interpolate(p1.y, p1.x, p2.y, p2.x);
-    let h12 = interpolate(p1.y, p1.h, p2.y, p2.h);
-    let x02 = interpolate(p0.y, p0.x, p2.y, p2.x);
-    let h02 = interpolate(p0.y, p0.h, p2.y, p2.h);
+    let x01 = interpolate(corner0.y, corner0.x, corner1.y, corner1.x);
+    let h01 = interpolate(corner0.y, corner0.h, corner1.y, corner1.h);
+    let x12 = interpolate(corner1.y, corner1.x, corner2.y, corner2.x);
+    let h12 = interpolate(corner1.y, corner1.h, corner2.y, corner2.h);
+    let x02 = interpolate(corner0.y, corner0.x, corner2.y, corner2.x);
+    let h02 = interpolate(corner0.y, corner0.h, corner2.y, corner2.h);
 
     // Concatenate `x01` and `x12`, but remove the value at the end of `x01` as it is repeated as
     // the first value of `x12`
