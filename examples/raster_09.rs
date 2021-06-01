@@ -85,12 +85,15 @@ struct Point {
 impl Point {
     #[allow(dead_code)]
     fn new(x: f64, y: f64) -> Self {
-        Self {x: x, y: y}
+        Self { x: x, y: y }
     }
 
     #[allow(dead_code)]
     fn from_ints(x: i32, y: i32) -> Self {
-        Self {x: x as f64, y: y as f64}
+        Self {
+            x: x as f64,
+            y: y as f64
+        }
     }
 }
 
@@ -105,7 +108,10 @@ struct Triangle {
 impl Triangle {
     #[allow(dead_code)]
     fn new(vertices: (usize, usize, usize), color: Rgb) -> Self {
-        Self {vertices: vertices, color: color}
+        Self {
+            vertices: vertices,
+            color: color
+        }
     }
 }
 
@@ -124,15 +130,19 @@ struct Plane {
 /// as a pair of `f64` values because further math will be performed, so converting to `i32`s is
 /// premature.
 fn viewport_to_canvas(x: f64, y: f64) -> Point {
-    Point::new(x * CANVAS_WIDTH as f64 / VIEWPORT_WIDTH,
-               y * CANVAS_HEIGHT as f64 / VIEWPORT_HEIGHT)
+    Point::new(
+        x * CANVAS_WIDTH as f64 / VIEWPORT_WIDTH,
+        y * CANVAS_HEIGHT as f64 / VIEWPORT_HEIGHT
+    )
 }
 
 
 /// Translates a point in 3D space to the corresponding point on the `viewport`.
 fn project_vertex(v: &Vector4) -> Point {
-    viewport_to_canvas(v.x * DISTANCE_FROM_CAMERA_TO_VIEWPORT / v.z,
-                       v.y * DISTANCE_FROM_CAMERA_TO_VIEWPORT / v.z)
+    viewport_to_canvas(
+        v.x * DISTANCE_FROM_CAMERA_TO_VIEWPORT / v.z,
+        v.y * DISTANCE_FROM_CAMERA_TO_VIEWPORT / v.z
+    )
 }
 
 
@@ -165,7 +175,9 @@ fn interpolate(i0: f64, d0: f64, i1: f64, d1: f64) -> Vec<(f64, f64)> {
         return values;
     }
 
-    let range = (i0.round() as i32 ..= i1.round() as i32).into_iter().collect::<Vec<_>>();
+    let range = (i0.round() as i32 ..= i1.round() as i32)
+        .into_iter()
+        .collect::<Vec<_>>();
     let delta = (d1 - d0) / (i1 - i0);
     let mut d = d0;
 
@@ -235,11 +247,12 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
 
 /// Render a wireframe triangle on the canvas, using the viewport coordinates of its corners.
 fn render_triangle(canvas: &mut Canvas, triangle: &Triangle, projected: &Vec<Point>) {
-    draw_wireframe_triangle(canvas,
-                            &projected.get(triangle.vertices.0).unwrap(),
-                            &projected.get(triangle.vertices.1).unwrap(),
-                            &projected.get(triangle.vertices.2).unwrap(),
-                            &triangle.color
+    draw_wireframe_triangle(
+        canvas,
+        &projected.get(triangle.vertices.0).unwrap(),
+        &projected.get(triangle.vertices.1).unwrap(),
+        &projected.get(triangle.vertices.2).unwrap(),
+        &triangle.color
     );
 }
 
@@ -291,11 +304,12 @@ fn intersection(v0: &Vector4, v1: &Vector4, plane: &Plane) -> Vector4 {
 /// clipping volume, the only change is to add `triangle` to `triangles`. If `triangle` is
 /// completely outside the clipping volume, nothing is added to `triangles` as no rendering is
 /// required.
-fn clip_triangle(triangle: Triangle,
-                 plane: &Plane,
-                 triangles: &mut Vec<Triangle>,
-                 vertices: &mut Vec<Vector4>) {
-
+fn clip_triangle(
+    triangle: Triangle,
+    plane: &Plane,
+    triangles: &mut Vec<Triangle>,
+    vertices: &mut Vec<Vector4>
+) {
     let v0_idx = triangle.vertices.0;
     let v1_idx = triangle.vertices.1;
     let v2_idx = triangle.vertices.2;
@@ -317,45 +331,45 @@ fn clip_triangle(triangle: Triangle,
     match positive.len() {
         3 => triangles.push(triangle),
         2 => {
-                let a_idx = positive.pop().unwrap();
-                let b_idx = positive.pop().unwrap();
-                let c_idx = negative.pop().unwrap();
+            let a_idx = positive.pop().unwrap();
+            let b_idx = positive.pop().unwrap();
+            let c_idx = negative.pop().unwrap();
 
-                let a = vertices.get(a_idx).unwrap();
-                let b = vertices.get(b_idx).unwrap();
-                let c = vertices.get(c_idx).unwrap();
+            let a = vertices.get(a_idx).unwrap();
+            let b = vertices.get(b_idx).unwrap();
+            let c = vertices.get(c_idx).unwrap();
 
-                let a_prime = intersection(&a, &c, plane);
-                let b_prime = intersection(&b, &c, plane);
+            let a_prime = intersection(&a, &c, plane);
+            let b_prime = intersection(&b, &c, plane);
 
-                vertices.push(a_prime);
-                let a_prime_idx = vertices.len() - 1;
-                vertices.push(b_prime);
-                let b_prime_idx = vertices.len() - 1;
+            vertices.push(a_prime);
+            let a_prime_idx = vertices.len() - 1;
+            vertices.push(b_prime);
+            let b_prime_idx = vertices.len() - 1;
 
-                triangles.push(Triangle::new((a_idx, b_idx, a_prime_idx), triangle.color));
-                triangles.push(Triangle::new((a_prime_idx, b_idx, b_prime_idx), triangle.color));
-            },
+            triangles.push(Triangle::new((a_idx, b_idx, a_prime_idx), triangle.color));
+            triangles.push(Triangle::new((a_prime_idx, b_idx, b_prime_idx), triangle.color));
+        }
         1 => {
-                let a_idx = positive.pop().unwrap();
-                let b_idx = negative.pop().unwrap();
-                let c_idx = negative.pop().unwrap();
+            let a_idx = positive.pop().unwrap();
+            let b_idx = negative.pop().unwrap();
+            let c_idx = negative.pop().unwrap();
 
-                let a = vertices.get(a_idx).unwrap();
-                let b = vertices.get(b_idx).unwrap();
-                let c = vertices.get(c_idx).unwrap();
+            let a = vertices.get(a_idx).unwrap();
+            let b = vertices.get(b_idx).unwrap();
+            let c = vertices.get(c_idx).unwrap();
 
-                let b_prime = intersection(&a, &b, plane);
-                let c_prime = intersection(&a, &c, plane);
+            let b_prime = intersection(&a, &b, plane);
+            let c_prime = intersection(&a, &c, plane);
 
-                vertices.push(b_prime);
-                let b_prime_idx = vertices.len() - 1;
-                vertices.push(c_prime);
-                let c_prime_idx = vertices.len() - 1;
+            vertices.push(b_prime);
+            let b_prime_idx = vertices.len() - 1;
+            vertices.push(c_prime);
+            let c_prime_idx = vertices.len() - 1;
 
-                triangles.push(Triangle::new((a_idx, b_prime_idx, c_prime_idx), triangle.color));
-            },
-        0 => {},
+            triangles.push(Triangle::new((a_idx, b_prime_idx, c_prime_idx), triangle.color));
+        }
+        0 => {}
         _ => panic!("Internal error: unexpected number of triangle vertices in clipping volume"),
     }
 }
@@ -404,11 +418,11 @@ fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &M
         triangles = new_triangles;
     }
 
-    Some (Model {
-            vertices: modified_vertices,
-            triangles: triangles.to_vec(),
-            bounds_center: transformed_center,
-            bounds_radius: model.bounds_radius,
+    Some(Model {
+        vertices: modified_vertices,
+        triangles: triangles.to_vec(),
+        bounds_center: transformed_center,
+        bounds_radius: model.bounds_radius,
     })
 }
 
@@ -438,12 +452,11 @@ fn render_instance(canvas: &mut Canvas, model: &Model) {
 /// that converts from instance space to camera space. This transform is generated once per
 /// instance and passed as input to the `render_instance` function.
 fn render_scene(canvas: &mut Canvas, camera: &Camera, instances: &[ModelInstance]) {
-    let camera_matrix =
-        camera.orientation
-            .transpose()
-            .multiply_matrix4x4(&Matrix4x4::new_translation_matrix_from_vec4(
-                &camera.position.multiply_by(-1.0),
-            ));
+    let camera_matrix = camera.orientation
+        .transpose()
+        .multiply_matrix4x4(&Matrix4x4::new_translation_matrix_from_vec4(
+            &camera.position.multiply_by(-1.0),
+        ));
 
     for mi in instances {
         let transform = camera_matrix.multiply_matrix4x4(&mi.transform);
@@ -541,7 +554,7 @@ fn main() {
                     clipping_planes: [
                         Plane { normal: Vector4::new(0.0, 0.0, 1.0, 0.0), distance: -1.0 }, // Near
                         Plane { normal: Vector4::new(s_xy, 0.0, s_z, 0.0), distance: 0.0 }, // Left
-                        Plane { normal: Vector4::new(-s_xy, 0.0, s_z, 0.0), distance: 0.0 }, // Rght
+                        Plane { normal: Vector4::new(-s_xy, 0.0, s_z, 0.0), distance: 0.0 }, // Rgt
                         Plane { normal: Vector4::new(0.0, -s_xy, s_z, 0.0), distance: 0.0 }, // Top
                         Plane { normal: Vector4::new(0.0, s_xy, s_z, 0.0), distance: 0.0 }, // Btm
                     ],
