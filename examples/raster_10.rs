@@ -100,6 +100,22 @@ impl Point {
 }
 
 
+/// A 2D point with depth information
+#[derive(Clone, Copy, Debug)]
+struct PointWithDepth {
+    pub x: f64,
+    pub y: f64,
+    pub depth: f64,
+}
+
+impl PointWithDepth {
+    #[allow(dead_code)]
+    fn new(x: f64, y: f64, depth: f64) -> Self {
+        Self { x: x, y: y, depth: depth }
+    }
+}
+
+
 /// A triangle, consisting of 3 vertex indices defining the position of its corners, and a color.
 #[derive(Clone, Copy, Debug)]
 struct Triangle {
@@ -139,32 +155,36 @@ fn viewport_to_canvas(x: f64, y: f64) -> Point {
 }
 
 
-/// Translates a point in 3D space to the corresponding point on the `viewport`.
-fn project_vertex(v: &Vector4) -> Point {
-    viewport_to_canvas(
+/// Translates a point in 3D space to the corresponding 2D point on the `viewport`. Also returns
+/// `z` information for use with the depth buffer.
+fn project_vertex(v: &Vector4) -> PointWithDepth {
+    let viewport_coords = viewport_to_canvas(
         v.x * DISTANCE_FROM_CAMERA_TO_VIEWPORT / v.z,
         v.y * DISTANCE_FROM_CAMERA_TO_VIEWPORT / v.z
-    )
+    );
+
+    PointWithDepth::new(viewport_coords.x, viewport_coords.y, v.z)
 }
 
 
-/// A buffer to store the depth at each pixel position of the canvas. Its width and height are set
-/// to `CANVAS_WIDTH` and `CANVAS_HEIGHT`.
+/// A buffer to store the inverse depth, i.e., 1/z, at each pixel position of the canvas. Its width
+/// and height are set to `CANVAS_WIDTH` and `CANVAS_HEIGHT`.
 struct DepthBuffer {
     buffer: [[f64; CANVAS_WIDTH]; CANVAS_HEIGHT],
 }
 
 impl DepthBuffer {
-    /// Creates a new DepthBuffer and initializes the depth of all cells to infinity.
+    /// Creates a new DepthBuffer and initializes the depth of all cells to 0.0, which represents
+    /// the farthest distance in the 1/z depth system.
     fn new() -> DepthBuffer {
-        Self { buffer: [[f64::INFINITY; CANVAS_WIDTH]; CANVAS_HEIGHT] }
+        Self { buffer: [[0.0; CANVAS_WIDTH]; CANVAS_HEIGHT] }
     }
 
-    /// Compares the stored depth of the `x`, `y` cell to the `depth` value passed. If the value
-    /// passed is greater or equal, no changes are made to this object and `false` is returned to
-    /// indicate that the pixel is behind one that has already been drawn, so no action is
-    /// required. Otherwise, the stored depth is updated with the value passed and `true` is
-    /// returned.
+    /// Compares the stored depth of the `x`, `y` cell to the `depth` value passed (in 1/z format).
+    /// If the value passed is less than or equal to the stored value (indicating that it is
+    /// farther than the stored value), no changes are made and `false` is returned to indicate
+    /// that the pixel is behind one that has already been drawn, so no action is required.
+    /// Otherwise, the stored depth is updated with the value passed and `true` is returned.
     ///
     /// `x` and `y` must be defined in canvas coordinates, e.g., the range of `x` is
     /// -CANVAS_WIDTH/2..CANVAS_WIDTH/2. If `x` or `y` are outside their respective ranges, no
@@ -178,13 +198,32 @@ impl DepthBuffer {
             return false;
         }
 
-        if depth < self.buffer[screen_x as usize][screen_y as usize] {
+        if depth > self.buffer[screen_x as usize][screen_y as usize] {
             self.buffer[screen_x as usize][screen_y as usize] = depth;
+
             return true;
         }
 
         return false;
     }
+}
+
+
+/// Renders a triangle on the canvas, using the viewport coordinates of its corners.
+fn render_triangle(
+    canvas: &mut Canvas,
+    depth_buffer: &mut DepthBuffer,
+    triangle: &Triangle,
+    projected: &Vec<PointWithDepth>
+) {
+    draw_filled_triangle(
+        canvas,
+        depth_buffer,
+        &projected.get(triangle.vertices.0).unwrap(),
+        &projected.get(triangle.vertices.1).unwrap(),
+        &projected.get(triangle.vertices.2).unwrap(),
+        &triangle.color
+    );
 }
 
 
@@ -232,21 +271,26 @@ fn interpolate(i0: f64, d0: f64, i1: f64, d1: f64) -> Vec<(f64, f64)> {
 }
 
 
-/// Render a wireframe triangle on the canvas, using the viewport coordinates of its corners.
-fn render_triangle(
-    canvas: &mut Canvas,
-    depth_buffer: &mut DepthBuffer,
-    triangle: &Triangle,
-    projected: &Vec<Point>
-) {
-    draw_filled_triangle(
-        canvas,
-        depth_buffer,
-        &projected.get(triangle.vertices.0).unwrap(),
-        &projected.get(triangle.vertices.1).unwrap(),
-        &projected.get(triangle.vertices.2).unwrap(),
-        &triangle.color
-    );
+// Interpolates over `y0`, `y1` and `y2`, which represent height coordinates of the three corners
+// of a triangle. It must be the case that: `y0` <= `y1` <= `y2`, i.e., `y0` is the lowest corner
+// and `y2` the highest. Associated dependent values `d0`, `d1` and `d2` are linearly interpolated
+// between the heights of the three corners.
+//
+// A pair of vectors is returned: the first for the side of the triangle extending from `y0` to
+// `y2` directly, and the other for the two sides that go from `y0` to `y2` via `y1`. Each vector
+// maps every value of `y` to the interpolated value of the dependent variable `d`.
+fn edge_interpolate(y0: f64, d0: f64, y1: f64, d1: f64, y2: f64, d2: f64)
+    -> (Vec<(f64, f64)>, Vec<(f64, f64)>) {
+
+    let d01 = interpolate(y0, d0, y1, d1);
+    let d12 = interpolate(y1, d1, y2, d2);
+    let d02 = interpolate(y0, d0, y2, d2);
+
+    // Concatenate `x01` and `x12`, but remove the value at the end of `x01` as it is repeated as
+    // the first value of `x12`
+    let d012 = [&d01[..d01.len()-1], &d12[..]].concat();
+
+    (d02, d012)
 }
 
 
@@ -256,9 +300,9 @@ fn render_triangle(
 fn draw_filled_triangle(
     canvas: &mut Canvas,
     depth_buffer: &mut DepthBuffer,
-    p0: &Point,
-    p1: &Point,
-    p2: &Point,
+    p0: &PointWithDepth,
+    p1: &PointWithDepth,
+    p2: &PointWithDepth,
     color: &Rgb
 ) {
     let mut corner0 = p0;
@@ -273,16 +317,21 @@ fn draw_filled_triangle(
     // Interpolate with the `y` coordinates as the independent variable because we want the value
     // `x` for each row (rather than looping over `x` to find `y`). The results are `vec`s of
     // `(f64, f64)`, representing `(y, x)` coordinates.
-    let x01 = interpolate(corner0.y, corner0.x, corner1.y, corner1.x);
-    let x12 = interpolate(corner1.y, corner1.x, corner2.y, corner2.x);
-    let x02 = interpolate(corner0.y, corner0.x, corner2.y, corner2.x);
+    let (x02, x012) = edge_interpolate(
+        corner0.y, corner0.x,
+        corner1.y, corner1.x,
+        corner2.y, corner2.x);
 
-    // Concatenate `x01` and `x12`, but remove the value at the end of `x01` as it is repeated as
-    // the first value of `x12`
-    let x012 = [&x01[..x01.len()-1], &x12[..]].concat();
+    // As above, but interpolate depth values.
+    let (z02, z012) = edge_interpolate(
+        corner0.y, 1.0/corner0.depth,
+        corner1.y, 1.0/corner1.depth,
+        corner2.y, 1.0/corner2.depth);
 
     let x_left;
     let x_right;
+    let z_left;
+    let z_right;
     let m = x02.len() / 2;
 
     // Look at the middle row of the triangle to determine whether `x02` or `x012` represents the
@@ -290,19 +339,32 @@ fn draw_filled_triangle(
     if x02[m].1 < x012[m].1 {   // Note that field `0` holds `x` coords, and `1` holds `y`.
         x_left = x02;
         x_right = x012;
+        z_left = z02;
+        z_right = z012;
     } else {
         x_left = x012;
         x_right = x02;
+        z_left = z012;
+        z_right = z02;
     }
 
-    // For every line, draw a row between the left and right sides of the triangle.
+    // For every canvas line, draw a row between the left and right sides of the triangle.
     for y in corner0.y.round() as i32 .. corner2.y.round() as i32 {
         let x_start = x_left.get((y - corner0.y.round() as i32) as usize).unwrap().1.round() as i32;
         let x_end = x_right.get((y - corner0.y.round() as i32) as usize).unwrap().1.round() as i32;
+        let z_start = z_left.get((y - corner0.y.round() as i32) as usize).unwrap().1;
+        let z_end = z_right.get((y - corner0.y.round() as i32) as usize).unwrap().1;
+
+        // Compute depth information for every pixel we are about to draw so we can tell whether
+        // they are in front of or behind any existing pixel that has been written at the same
+        // location.
+        let depth_info = interpolate(
+            x_start as f64, z_start as f64,
+            x_end as f64, z_end as f64,
+        );
 
         for x in x_start .. x_end {
-
-            if depth_buffer.check_set_nearer_pixel(x, y, 10.0) { // TODO replace 10.0 with real `z`
+            if depth_buffer.check_set_nearer_pixel(x, y, depth_info[(x - x_start) as usize].1) {
                 canvas.put_pixel(x, y, color);
             }
         }
@@ -590,15 +652,8 @@ fn main() {
                         ),
                     ];
 
-    // Chapter 11 of the book defines the planes using a field of view of 90° "for simplicity", but
-    // this requires reworking the viewport size. Instead, we define planes that are correct for
-    // the viewport we used for all previous examples, maintaining a FOV of about 53°.
-    //
-    // The fudge factor subtracted from `s_z` and `s_xy` narrows the field of view so that the
-    // clipping occurs a pixel or two inside the clipping volume. The resulting white border
-    // makes the additional lines added by the clipping routines easier to see.
-    let s_z = 1.0 / f64::sqrt(5.0) - 0.005;  // Slope to use for z axis of planes
-    let s_xy = 2.0 / f64::sqrt(5.0)  - 0.005;  // Slope to use for x and y axes of planes
+    let s_z = 1.0 / f64::sqrt(5.0);
+    let s_xy = 2.0 / f64::sqrt(5.0);
     let camera = Camera {
                     position: Vector4::new(-3.0, 1.0, 2.0, 1.0),
                     orientation: Matrix4x4::new_oy_rotation_matrix(-30.0),
