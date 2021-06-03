@@ -276,6 +276,22 @@ fn edge_interpolate(y0: f64, d0: f64, y1: f64, d1: f64, y2: f64, d2: f64)
 }
 
 
+/// Returns a non-normalized normal of the three points passed as arguments.
+fn compute_triangle_normal(v0: &Vector4, v1: &Vector4, v2: &Vector4)
+    -> Vector4 {
+
+    // It is impossible to calculate the cross product on 4-element vectors, so reduce inputs to
+    // 3-element vectors.
+    let v0_new = Vector3::from_vector4(v0);
+    let v1_new = Vector3::from_vector4(v1);
+    let v2_new = Vector3::from_vector4(v2);
+
+    let a = v1_new.subtract(&v0_new);
+    let b = v2_new.subtract(&v0_new);
+    return Vector4::from_vector3(&a.cross(&b), 0.0)
+}
+
+
 /// Renders a filled triangle on the canvas. `projected` contains the triangle's corners in
 /// projected coordinates, i.e., 2D coordinates where `x` is in the range -width/2..width/2, and
 /// likewise for height. The projected coordinates contain depth information for use with
@@ -284,8 +300,29 @@ fn render_triangle(
     canvas: &mut Canvas,
     depth_buffer: &mut DepthBuffer,
     triangle: &Triangle,
+    vertices: &Vec<Vector4>,
     projected: &Vec<PointWithDepth>
 ) {
+    let v0 = &vertices.get(triangle.vertices.0).unwrap();
+    let v1 = &vertices.get(triangle.vertices.1).unwrap();
+    let v2 = &vertices.get(triangle.vertices.2).unwrap();
+
+    // Compute the triangle's normal using the projected vertices. The vertices in the models are
+    // ordered *clockwise*, so the *left*-hand rule is used to calculate the normal from the
+    // cross product.
+    let normal = compute_triangle_normal(&v0, &v1, &v2);
+
+    // Backface culling.
+    //
+    // Calculate the center point of the triangle by averaging its three corners, and negate as a
+    // shortcut for 'camera origin - center point'. This gives the vector from the center point to
+    // the camera origin. Dot this with the triangle's normal to determine whether the triangle is
+    // facing toward the camera, and return immediately if it isn't.
+    let center = v0.add(&v1).add(&v2).multiply_by(-1.0/3.0);
+    if center.dot(&normal) <= 0.0 {
+        return;
+    }
+
     let p0 = &projected.get(triangle.vertices.0).unwrap();
     let p1 = &projected.get(triangle.vertices.1).unwrap();
     let p2 = &projected.get(triangle.vertices.2).unwrap();
@@ -533,7 +570,7 @@ fn render_instance(canvas: &mut Canvas, depth_buffer: &mut DepthBuffer, model: &
 
     // Render each triangle by passing coordinates of each corner as a 2D `Point` on the viewport.
     for t in &model.triangles {
-        render_triangle(canvas, depth_buffer, &t, &projected);
+        render_triangle(canvas, depth_buffer, &t, &model.vertices, &projected);
     }
 }
 
@@ -626,12 +663,6 @@ fn main() {
                      ModelInstance::new(
                             &cube,
                             Vector4::new(1.25, 2.5, 7.5, 1.0),
-                            Matrix4x4::new_oy_rotation_matrix(195.0),
-                            1.0,
-                        ),
-                     ModelInstance::new(
-                            &cube,
-                            Vector4::new(1.0, -1.0, 4.0, 1.0), // Object moved to show clipping
                             Matrix4x4::new_oy_rotation_matrix(195.0),
                             1.0,
                         ),
