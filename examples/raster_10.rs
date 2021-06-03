@@ -209,24 +209,6 @@ impl DepthBuffer {
 }
 
 
-/// Renders a triangle on the canvas, using the viewport coordinates of its corners.
-fn render_triangle(
-    canvas: &mut Canvas,
-    depth_buffer: &mut DepthBuffer,
-    triangle: &Triangle,
-    projected: &Vec<PointWithDepth>
-) {
-    draw_filled_triangle(
-        canvas,
-        depth_buffer,
-        &projected.get(triangle.vertices.0).unwrap(),
-        &projected.get(triangle.vertices.1).unwrap(),
-        &projected.get(triangle.vertices.2).unwrap(),
-        &triangle.color
-    );
-}
-
-
 /// Iterates over the range `i0` to `i1` inclusive, interpolating over a dependent range from `d0`
 /// to `d1` inclusive. `i0` must be lower than or equal to `i1`, or the vector returned will be
 /// empty.
@@ -294,17 +276,20 @@ fn edge_interpolate(y0: f64, d0: f64, y1: f64, d1: f64, y2: f64, d2: f64)
 }
 
 
-/// Draws a filled triangle defined by the three 2D points passed and in the color passed. The
-/// points have already been projected, so their coordinates are in 2D canvas coordinates, i.e.,
-/// -width/2..width/2, and likewise for height.
-fn draw_filled_triangle(
+/// Renders a filled triangle on the canvas. `projected` contains the triangle's corners in
+/// projected coordinates, i.e., 2D coordinates where `x` is in the range -width/2..width/2, and
+/// likewise for height. The projected coordinates contain depth information for use with
+/// `depth_buffer`.
+fn render_triangle(
     canvas: &mut Canvas,
     depth_buffer: &mut DepthBuffer,
-    p0: &PointWithDepth,
-    p1: &PointWithDepth,
-    p2: &PointWithDepth,
-    color: &Rgb
+    triangle: &Triangle,
+    projected: &Vec<PointWithDepth>
 ) {
+    let p0 = &projected.get(triangle.vertices.0).unwrap();
+    let p1 = &projected.get(triangle.vertices.1).unwrap();
+    let p2 = &projected.get(triangle.vertices.2).unwrap();
+
     let mut corner0 = p0;
     let mut corner1 = p1;
     let mut corner2 = p2;
@@ -365,7 +350,7 @@ fn draw_filled_triangle(
 
         for x in x_start .. x_end {
             if depth_buffer.check_set_nearer_pixel(x, y, depth_info[(x - x_start) as usize].1) {
-                canvas.put_pixel(x, y, color);
+                canvas.put_pixel(x, y, &triangle.color);
             }
         }
     }
