@@ -309,6 +309,12 @@ impl Vector3 {
             Result::Err(())
         }
     }
+
+    /// Return the magnitude of this `Vector3`.
+    #[allow(dead_code)]
+    pub fn magnitude(&self) -> f64 {
+        f64::sqrt((&self).dot(&self))
+    }
 }
 
 
@@ -369,12 +375,20 @@ impl Vector4 {
     pub fn dot(&self, v: &Vector4) -> f64 {
         self.x * v.x + self.y * v.y + self.z * v.z + self.w * v.w
     }
+
+    /// Return the magnitude of this `Vector4`.
+    #[allow(dead_code)]
+    pub fn magnitude(&self) -> f64 {
+        f64::sqrt(self.x * self.x + self.y * self.y + self.z * self.z) / self.w
+    }
 }
 
 
 
 #[allow(dead_code)]
 fn run_tests() {
+    // Vector3 tests
+
     let a = Vector3::new(0.0, 3.0, 4.0);
     let b = Vector3::new(3.1, 2.2, 1.3);
 
@@ -408,6 +422,24 @@ fn run_tests() {
 
     let a_norm = a.normalize().unwrap();
     assert_eq!(a_norm, Vector3::new(0.0, 0.6, 0.8));
+
+    let a_mag = a.magnitude();
+    assert_eq!(a_mag, 5.0);
+
+    let b_mag = b.magnitude();
+    assert_eq!(b_mag, 4.017461885320134);
+
+
+    // Vector4 tests
+
+    let n = Vector4::new(0.0, 3.0, 4.0, 2.0);
+    let o = Vector4::new(3.1, 2.2, 1.3, 4.4);
+
+    let n_mag = n.magnitude();
+    assert_eq!(n_mag, 2.5);
+
+    let o_mag = o.magnitude();
+    assert_eq!(o_mag, 0.9130595193909394);
 
 
     // Matrix math tests
