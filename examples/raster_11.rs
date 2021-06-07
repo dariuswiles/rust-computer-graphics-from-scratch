@@ -73,8 +73,10 @@ struct Model {
 /// field, preventing instances being moved.
 struct ModelInstance<'a> {
     model: &'a Model,
+    #[allow(dead_code)]
     position: Vector4,
     orientation: Matrix4x4,
+    #[allow(dead_code)]
     scale: f64,
     transform: Matrix4x4,
 }
@@ -293,7 +295,7 @@ fn project_vertex(v: &Vector4) -> PointWithDepth {
 
 /// Translates a point in 3D space to the corresponding 2D point on the `viewport`. Also returns
 /// `z` information for use with the depth buffer.
-fn unproject_vertex(x: f64, y: f64, inv_z: f64) -> PointWithDepth { // TODOMaybe take: PointWithDepth
+fn unproject_vertex(x: f64, y: f64, inv_z: f64) -> PointWithDepth {
     let orig_z = 1.0 / inv_z;
     let ux = x * orig_z / DISTANCE_FROM_CAMERA_TO_VIEWPORT;
     let uy = y * orig_z /  DISTANCE_FROM_CAMERA_TO_VIEWPORT;
@@ -375,21 +377,28 @@ fn generate_sphere(divs: i32, color: &Rgb) -> Model {
         for i in 0..divs-1 {
             let i0 = (d*divs + i) as usize;
 
+            let t0_idx0 = i0;
+            let t0_idx1 = i0+(divs as usize)+1;
+            let t0_idx2 = i0+1;
+            let t0_ver0 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t0_idx0).unwrap()), 0.0);
+            let t0_ver1 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t0_idx1).unwrap()), 0.0);
+            let t0_ver2 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t0_idx2).unwrap()), 0.0);
             triangles.push(Triangle::new(
-                [i0, i0+(divs as usize)+1, i0+1],
+                [t0_idx0, t0_idx1, t0_idx2],
                 *color,
-                [vertexes.get(i0).unwrap().clone(),
-                    vertexes.get(i0+(divs as usize)+1).unwrap().clone(),
-                    vertexes.get(i0+1).unwrap().clone()
-                ],
+                [t0_ver0, t0_ver1, t0_ver2],
             ));
+
+            let t1_idx0 = i0;
+            let t1_idx1 = i0+(divs as usize);
+            let t1_idx2 = i0+(divs as usize)+1;
+            let t1_ver0 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t1_idx0).unwrap()), 0.0);
+            let t1_ver1 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t1_idx1).unwrap()), 0.0);
+            let t1_ver2 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t1_idx2).unwrap()), 0.0);
             triangles.push(Triangle::new(
-                [i0, i0+(divs as usize), i0+(divs as usize)+1],
+                [t1_idx0, t1_idx1, t1_idx2],
                 *color,
-                [vertexes.get(i0).unwrap().clone(),
-                    vertexes.get(i0+(divs as usize)).unwrap().clone(),
-                    vertexes.get(i0+(divs as usize)+1).unwrap().clone()
-                ],
+                [t1_ver0, t1_ver1, t1_ver2],
             ));
         }
     }
@@ -458,25 +467,13 @@ fn interpolate(i0: f64, d0: f64, i1: f64, d1: f64) -> Vec<(f64, f64)> {
 fn edge_interpolate(y0: f64, d0: f64, y1: f64, d1: f64, y2: f64, d2: f64)
     -> (Vec<(f64, f64)>, Vec<(f64, f64)>) {
 
-    // TODO DE-BUG
-    if (y0 > y1) | (y1 > y2) {
-        panic!(format!("edge_interpolate called with y0={}, d0={}\t\ty1={}, d1={}\t\ty2={}, d2={}", y0, d0, y1, d1, y2, d2));
-    }
-
     let d01 = interpolate(y0, d0, y1, d1);
     let d12 = interpolate(y1, d1, y2, d2);
     let d02 = interpolate(y0, d0, y2, d2);
 
-//     println!("\td01 = {:?}", d01);
-//     println!("\td12 = {:?}", d12);
-//     println!("\td02 = {:?}", d02);
-
     // Concatenate `x01` and `x12`, but remove the value at the end of `x01` as it is repeated as
     // the first value of `x12`
     let d012 = [&d01[..d01.len()-1], &d12[..]].concat();
-
-//     println!("\tReturning d02 = {:?}", d02); // de-BUG
-//     println!("\tReturning d012 = {:?}\n", d012); // de-BUG
 
     (d02, d012)
 }
@@ -509,7 +506,7 @@ fn sorted_vertex_indexes(vertex_indexes: &[usize; 3], projected: &Vec<PointWithD
 fn compute_triangle_normal(v0: &Vector4, v1: &Vector4, v2: &Vector4)
     -> Vector4 {
 
-    // It is impossible to calculate the cross product on 4-element vectors, so reduce inputs to
+    // It is impossible to calculate the cross product of 4-element vectors, so reduce inputs to
     // 3-element vectors.
     let v0_new = Vector3::from_vector4(v0);
     let v1_new = Vector3::from_vector4(v1);
@@ -521,7 +518,9 @@ fn compute_triangle_normal(v0: &Vector4, v1: &Vector4, v2: &Vector4)
 }
 
 
-/// TODO documentation
+/// Returns a number between 0.0 and 1.0 indicating the intensity of light at this `vertex` based
+/// on its `normal`, the `camera` position and user choice on whether to calculate diffuse
+/// lighting, specular lighting, or both.
 fn compute_illumination(vertex: &Vector4, normal: &Vector4, camera: &Camera, lights: &[Light],
     user_choices: &UserChoices) -> f64
 {
@@ -547,18 +546,19 @@ fn compute_illumination(vertex: &Vector4, normal: &Vector4, camera: &Camera, lig
                         .multiply_by(-1.0))
                 );
 
-                let transformed_light = &camera_matrix.multiply_vector(&point_light.position);  // TODO I believe position is correct, but differs from JS on GitHub.
+                let transformed_light = &camera_matrix.multiply_vector(&point_light.position);
 
                 // Calculate a vector from the light to the vertex we are calculating illumination
                 // for.
-                vl = transformed_light.add(&vertex.multiply_by(-1.0));
+                vl = transformed_light.subtract(&vertex);
                 light_intensity = point_light.intensity;
             }
         }
 
+        // Diffuse lighting
         match user_choices.lighting {
             Lighting::Diffuse | Lighting::Both => {
-                let cos_alpha = vl.dot(&normal) / vl.magnitude() * normal.magnitude();
+                let cos_alpha = vl.dot(&normal) / (vl.magnitude() * normal.magnitude());
 
                 if cos_alpha > 0.0 {
                     illumination += cos_alpha * light_intensity;
@@ -573,7 +573,8 @@ fn compute_illumination(vertex: &Vector4, normal: &Vector4, camera: &Camera, lig
                 let reflected = normal.multiply_by(2.0 * vl.dot(&normal)).add(&vl.multiply_by(-1.0));
                 let view = camera.position.add(&vertex.multiply_by(-1.0));
 
-                let cos_beta = reflected.dot(&view) / reflected.magnitude() * view.magnitude();
+                let cos_beta = reflected.dot(&view) / (reflected.magnitude() * view.magnitude());
+
                 if cos_beta > 0.0 {
                     let specular = 50;
 
@@ -603,16 +604,11 @@ fn render_triangle(
     depth_buffer: &mut DepthBuffer,
     user_choices: &UserChoices,
 ) {
-
     // Create three variables indexing into `triangle.indexes` that reference the points in
     // `projected` from lowest to highest y-coordinates. `i0` will indicate the entry in the
     // `triangle_indexes` array that references the `projected` point of the triangle's corners
     // that has the smallest y coordinate.
-    // TODO Don't think I can assign to `indexes` directly, as JS does (at least not in Rust 2018). Worth a try though.
     let [i0, i1, i2] = sorted_vertex_indexes(&triangle.indexes, projected);
-    let indexes = [i0, i1, i2];
-
-//     println!("In render_triangle, indexes = {:?}", indexes);
 
     let v0 = &vertexes.get(triangle.indexes[i0]).unwrap();
     let v1 = &vertexes.get(triangle.indexes[i1]).unwrap();
@@ -645,28 +641,19 @@ fn render_triangle(
     let p1 = &projected.get(triangle.indexes[i1]).unwrap();
     let p2 = &projected.get(triangle.indexes[i2]).unwrap();
 
-    let corner0 = p0;
-    let corner1 = p1;
-    let corner2 = p2;
-
-    // DEBUG
-    if (p0.y > p1.y) | (p1.y > p2.y) {
-        panic!(format!("In render_triangle with p0.y, p1.y, p2.y = {}, {}, {}", p0.y, p1.y, p2.y));
-    }
-
     // Interpolate with the `y` coordinates as the independent variable because we want the value
     // `x` for each row (rather than looping over `x` to find `y`). The results are `vec`s of
     // `(f64, f64)`, representing `(y, x)` coordinates.
     let (x02, x012) = edge_interpolate(
-        corner0.y, corner0.x,
-        corner1.y, corner1.x,
-        corner2.y, corner2.x);
+        p0.y, p0.x,
+        p1.y, p1.x,
+        p2.y, p2.x);
 
     // As above, but interpolate depth values.
     let (iz02, iz012) = edge_interpolate(
-        corner0.y, 1.0/corner0.depth,
-        corner1.y, 1.0/corner1.depth,
-        corner2.y, 1.0/corner2.depth);
+        p0.y, 1.0/p0.depth,
+        p1.y, 1.0/p1.depth,
+        p2.y, 1.0/p2.depth);
 
 
     // Depending on the user's choice, set normals to either those defined with the model, or ones
@@ -690,72 +677,180 @@ fn render_triangle(
         },
     }
 
-    // TODO Implement the below. Difficulty is passing different variables to code later in this fn. The different shading techniques need to pass different variables. :(
+    let center;
+    let mut intensity = 1.0;
+    let (i0, i1, i2);
+    let mut i02: Vec<(f64, f64)> = Vec::new();
+    let mut i012: Vec<(f64, f64)> = Vec::new();
+    let mut iscan: Vec<(f64, f64)> = Vec::new();
+    let mut nx02: Vec<(f64, f64)> = Vec::new();
+    let mut nx012: Vec<(f64, f64)> = Vec::new();
+    let mut ny02: Vec<(f64, f64)> = Vec::new();
+    let mut ny012: Vec<(f64, f64)> = Vec::new();
+    let mut nz02: Vec<(f64, f64)> = Vec::new();
+    let mut nz012: Vec<(f64, f64)> = Vec::new();
+    let mut nxscan: Vec<(f64, f64)> = Vec::new();
+    let mut nyscan: Vec<(f64, f64)> = Vec::new();
+    let mut nzscan: Vec<(f64, f64)> = Vec::new();
+
     match user_choices.shading {
         Shading::Flat => {
-            let _ = &lights;
-            // Flat shading: compute lighting for the entire triangle.
-//     var center = Vertex((v0.x + v1.x + v2.x)/3.0, (v0.y + v1.y + v2.y)/3.0, (v0.z + v1.z + v2.z)/3.0);
-//     var intensity = ComputeIllumination(center, normal0, camera, lights);
-
-
-
+            center = Vector4::new(
+                (v0.x + v1.x + v2.x)/3.0,
+                (v0.y + v1.y + v2.y)/3.0,
+                (v0.z + v1.z + v2.z)/3.0,
+                1.0);
+            intensity = compute_illumination(&center, &normal0, camera, lights, user_choices);
         },
         Shading::Gouraud => {
             // Gouraud shading: compute lighting at the vertexes, and interpolate.
-//     var i0 = ComputeIllumination(v0, normal0, camera, lights);
-//     var i1 = ComputeIllumination(v1, normal1, camera, lights);
-//     var i2 = ComputeIllumination(v2, normal2, camera, lights);
 
+            i0 = compute_illumination(v0, &normal0, camera, lights, user_choices);
+            i1 = compute_illumination(v1, &normal1, camera, lights, user_choices);
+            i2 = compute_illumination(v2, &normal2, camera, lights, user_choices);
+
+            let edge = edge_interpolate(p0.y, i0, p1.y, i1, p2.y, i2);
+            i02 = edge.0;
+            i012 = edge.1;
         },
         Shading::Phong => {
             // Phong shading: interpolate normal vectors.
-    /*var [nx02, nx012] = EdgeInterpolate(p0.y, normal0.x, p1.y, normal1.x, p2.y, normal2.x);
-    var [ny02, ny012] = EdgeInterpolate(p0.y, normal0.y, p1.y, normal1.y, p2.y, normal2.y);
-    var [nz02, nz012] = EdgeInterpolate(p0.y, normal0.z, p1.y, normal1.z, p2.y, normal2.z);
-    */
 
-        },
+            let edge_x = edge_interpolate(p0.y, normal0.x, p1.y, normal1.x, p2.y, normal2.x);
+            nx02 = edge_x.0;
+            nx012 = edge_x.1;
+
+            let edge_y = edge_interpolate(p0.y, normal0.y, p1.y, normal1.y, p2.y, normal2.y);
+            ny02 = edge_y.0;
+            ny012 = edge_y.1;
+
+            let edge_z = edge_interpolate(p0.y, normal0.z, p1.y, normal1.z, p2.y, normal2.z);
+            nz02 = edge_z.0;
+            nz012 = edge_z.1;
+        }
     }
 
-    let x_left;
-    let x_right;
-    let iz_left;
-    let iz_right;
+    let (x_left, x_right);
+    let (iz_left, iz_right);
+    let mut i_left: Vec<(f64, f64)> = Vec::new();
+    let mut i_right: Vec<(f64, f64)> = Vec::new();
+    let mut nx_left: Vec<(f64, f64)> = Vec::new();
+    let mut nx_right: Vec<(f64, f64)> = Vec::new();
+    let mut ny_left: Vec<(f64, f64)> = Vec::new();
+    let mut ny_right: Vec<(f64, f64)> = Vec::new();
+    let mut nz_left: Vec<(f64, f64)> = Vec::new();
+    let mut nz_right: Vec<(f64, f64)> = Vec::new();
     let m = x02.len() / 2;
 
     // Look at the middle row of the triangle to determine whether `x02` or `x012` represents the
     // left side of the triangle.
-    if x02[m].1 < x012[m].1 {   // Note that field `0` holds `x` coords, and `1` holds `y`.
+    if x02[m].1 < x012[m].1 {   // Note that field 1 holds `y` coordinates.
         x_left = x02;
         x_right = x012;
         iz_left = iz02;
         iz_right = iz012;
+
+        match user_choices.shading {
+            Shading::Flat => {
+                // No action
+            },
+            Shading::Gouraud => {
+                i_left = i02.clone();
+                i_right = i012.clone();
+            },
+            Shading::Phong => {
+                nx_left = nx02;
+                nx_right = nx012;
+                ny_left = ny02;
+                ny_right = ny012;
+                nz_left = nz02;
+                nz_right = nz012;
+            }
+        }
     } else {
         x_left = x012;
         x_right = x02;
         iz_left = iz012;
         iz_right = iz02;
+
+        match user_choices.shading {
+            Shading::Flat => {
+                // No action
+            },
+            Shading::Gouraud => {
+                i_left = i012.clone();
+                i_right = i02.clone();
+            },
+            Shading::Phong => {
+                nx_left = nx012;
+                nx_right = nx02;
+                ny_left = ny012;
+                ny_right = ny02;
+                nz_left = nz012;
+                nz_right = nz02;
+            }
+        }
     }
 
     // For every canvas line, draw a row between the left and right sides of the triangle.
-    for y in corner0.y.round() as i32 .. corner2.y.round() as i32 {
-        let x_start = x_left.get((y - corner0.y.round() as i32) as usize).unwrap().1.round() as i32;
-        let x_end = x_right.get((y - corner0.y.round() as i32) as usize).unwrap().1.round() as i32;
-        let iz_start = iz_left.get((y - corner0.y.round() as i32) as usize).unwrap().1;
-        let iz_end = iz_right.get((y - corner0.y.round() as i32) as usize).unwrap().1;
+    for y in p0.y.round() as i32 .. p2.y.round() as i32 {
+        let xl = x_left.get((y - p0.y.round() as i32) as usize).unwrap().1.round();
+        let xr = x_right.get((y - p0.y.round() as i32) as usize).unwrap().1.round();
 
-        // Compute depth information for every pixel we are about to draw so we can tell whether
-        // they are in front of or behind any existing pixel that has been written at the same
-        // location.
-        let depth_info = interpolate(
-            x_start as f64, iz_start as f64,
-            x_end as f64, iz_end as f64,
-        );
+        // Interpolate attributes for this scanline.
+        let zl = iz_left.get((y - p0.y.round() as i32) as usize).unwrap().1;
+        let zr = iz_right.get((y - p0.y.round() as i32) as usize).unwrap().1;
+        let zscan = interpolate(xl, zl, xr, zr);
 
-        for x in x_start .. x_end {
-            if depth_buffer.check_set_nearer_pixel(x, y, depth_info[(x - x_start) as usize].1) {
-                canvas.put_pixel(x, y, &triangle.color);
+        match user_choices.shading {
+            Shading::Flat => {
+                // No action
+            },
+            Shading::Gouraud => {
+                let il = i_left[(y - p0.y.round() as i32) as usize].1;
+                let ir = i_right[(y - p0.y.round() as i32) as usize].1;
+                iscan = interpolate(xl, il, xr, ir);
+            },
+            Shading::Phong => {
+                let nxl = nx_left[(y - p0.y.round() as i32) as usize].1;
+                let nxr = nx_right[(y - p0.y.round() as i32) as usize].1;
+                let nyl = ny_left[(y - p0.y.round() as i32) as usize].1;
+                let nyr = ny_right[(y - p0.y.round() as i32) as usize].1;
+                let nzl = nz_left[(y - p0.y.round() as i32) as usize].1;
+                let nzr = nz_right[(y - p0.y.round() as i32) as usize].1;
+
+                nxscan = interpolate(xl, nxl, xr, nxr);
+                nyscan = interpolate(xl, nyl, xr, nyr);
+                nzscan = interpolate(xl, nzl, xr, nzr);
+            }
+        }
+
+        for x in xl.round() as i32 .. xr.round() as i32 {
+            let x_minus_xl = (x as f64 - xl).round() as usize;
+
+            let inv_z = zscan[x_minus_xl].1;
+
+            if depth_buffer.check_set_nearer_pixel(x as i32, y as i32, inv_z) {
+
+                match user_choices.shading {
+                    Shading::Flat => {
+                        // No action
+                    },
+                    Shading::Gouraud => {
+                        intensity = iscan[x_minus_xl].1;
+                    },
+                    Shading::Phong => {
+                        let vertex = unproject_vertex(x as f64, y as f64, inv_z);
+                        let normal = Vector4::new(nxscan[x_minus_xl].1, nyscan[x_minus_xl].1,
+                            nzscan[x_minus_xl].1, 0.0);
+                        intensity = compute_illumination(
+                            &Vector4::new(vertex.x, vertex.y, vertex.depth, 1.0),
+                            &normal, camera, lights, user_choices
+                        );
+                    }
+                }
+
+                canvas.put_pixel(x, y, &triangle.color.multiply_by(intensity).clamp());
             }
         }
     }
@@ -1007,10 +1102,6 @@ fn main() {
 
     if let Result::Ok(choices) = parse_command_line_arguments() {
         user_choices = choices;
-        println!("Arguments read successfully");
-        println!("\tLighting = {:#?}", user_choices.lighting);
-        println!("\tShading = {:#?}", user_choices.shading);
-        println!("\tNormals = {:#?}", user_choices.normals);
     } else {
         return;
     }
@@ -1044,64 +1135,64 @@ fn main() {
     // Define triangles with an array of 3 indexes referencing the `vertexes` array.
     let triangles = vec![
         Triangle::new([0, 1, 2], red, [
-            Vector4::new(0.0, 0.0, 1.0, 1.0),
-            Vector4::new(0.0, 0.0, 1.0, 1.0),
-            Vector4::new(0.0, 0.0, 1.0, 1.0),
+            Vector4::new(0.0, 0.0, 1.0, 0.0),
+            Vector4::new(0.0, 0.0, 1.0, 0.0),
+            Vector4::new(0.0, 0.0, 1.0, 0.0),
         ]),
         Triangle::new([0, 2, 3], red, [
-            Vector4::new(0.0, 0.0, 1.0, 1.0),
-            Vector4::new(0.0, 0.0, 1.0, 1.0),
-            Vector4::new(0.0, 0.0, 1.0, 1.0),
+            Vector4::new(0.0, 0.0, 1.0, 0.0),
+            Vector4::new(0.0, 0.0, 1.0, 0.0),
+            Vector4::new(0.0, 0.0, 1.0, 0.0),
         ]),
         Triangle::new([4, 0, 3], green, [
-            Vector4::new(1.0, 0.0, 0.0, 1.0),
-            Vector4::new(1.0, 0.0, 0.0, 1.0),
-            Vector4::new(1.0, 0.0, 0.0, 1.0),
+            Vector4::new(1.0, 0.0, 0.0, 0.0),
+            Vector4::new(1.0, 0.0, 0.0, 0.0),
+            Vector4::new(1.0, 0.0, 0.0, 0.0),
         ]),
         Triangle::new([4, 3, 7], green, [
-            Vector4::new(1.0, 0.0, 0.0, 1.0),
-            Vector4::new(1.0, 0.0, 0.0, 1.0),
-            Vector4::new(1.0, 0.0, 0.0, 1.0),
+            Vector4::new(1.0, 0.0, 0.0, 0.0),
+            Vector4::new(1.0, 0.0, 0.0, 0.0),
+            Vector4::new(1.0, 0.0, 0.0, 0.0),
         ]),
         Triangle::new([5, 4, 7], blue, [
-            Vector4::new(0.0, 0.0, -1.0, 1.0),
-            Vector4::new(0.0, 0.0, -1.0, 1.0),
-            Vector4::new(0.0, 0.0, -1.0, 1.0),
+            Vector4::new(0.0, 0.0, -1.0, 0.0),
+            Vector4::new(0.0, 0.0, -1.0, 0.0),
+            Vector4::new(0.0, 0.0, -1.0, 0.0),
         ]),
         Triangle::new([5, 7, 6], blue, [
-            Vector4::new(0.0, 0.0, -1.0, 1.0),
-            Vector4::new(0.0, 0.0, -1.0, 1.0),
-            Vector4::new(0.0, 0.0, -1.0, 1.0),
+            Vector4::new(0.0, 0.0, -1.0, 0.0),
+            Vector4::new(0.0, 0.0, -1.0, 0.0),
+            Vector4::new(0.0, 0.0, -1.0, 0.0),
         ]),
         Triangle::new([1, 5, 6], yellow, [
-            Vector4::new(-1.0, 0.0, 0.0, 1.0),
-            Vector4::new(-1.0, 0.0, 0.0, 1.0),
-            Vector4::new(-1.0, 0.0, 0.0, 1.0),
+            Vector4::new(-1.0, 0.0, 0.0, 0.0),
+            Vector4::new(-1.0, 0.0, 0.0, 0.0),
+            Vector4::new(-1.0, 0.0, 0.0, 0.0),
         ]),
         Triangle::new([1, 6, 2], yellow, [
-            Vector4::new(-1.0, 0.0, 0.0, 1.0),
-            Vector4::new(-1.0, 0.0, 0.0, 1.0),
-            Vector4::new(-1.0, 0.0, 0.0, 1.0),
+            Vector4::new(-1.0, 0.0, 0.0, 0.0),
+            Vector4::new(-1.0, 0.0, 0.0, 0.0),
+            Vector4::new(-1.0, 0.0, 0.0, 0.0),
         ]),
         Triangle::new([4, 5, 1], purple, [
-            Vector4::new(0.0, 1.0, 0.0, 1.0),
-            Vector4::new(0.0, 1.0, 0.0, 1.0),
-            Vector4::new(0.0, 1.0, 0.0, 1.0),
+            Vector4::new(0.0, 1.0, 0.0, 0.0),
+            Vector4::new(0.0, 1.0, 0.0, 0.0),
+            Vector4::new(0.0, 1.0, 0.0, 0.0),
         ]),
         Triangle::new([4, 1, 0], purple, [
-            Vector4::new(0.0, 1.0, 0.0, 1.0),
-            Vector4::new(0.0, 1.0, 0.0, 1.0),
-            Vector4::new(0.0, 1.0, 0.0, 1.0),
+            Vector4::new(0.0, 1.0, 0.0, 0.0),
+            Vector4::new(0.0, 1.0, 0.0, 0.0),
+            Vector4::new(0.0, 1.0, 0.0, 0.0),
         ]),
         Triangle::new([2, 6, 7], cyan, [
-            Vector4::new(0.0, -1.0, 0.0, 1.0),
-            Vector4::new(0.0, -1.0, 0.0, 1.0),
-            Vector4::new(0.0, -1.0, 0.0, 1.0),
+            Vector4::new(0.0, -1.0, 0.0, 0.0),
+            Vector4::new(0.0, -1.0, 0.0, 0.0),
+            Vector4::new(0.0, -1.0, 0.0, 0.0),
         ]),
         Triangle::new([2, 7, 3], cyan, [
-            Vector4::new(0.0, -1.0, 0.0, 1.0),
-            Vector4::new(0.0, -1.0, 0.0, 1.0),
-            Vector4::new(0.0, -1.0, 0.0, 1.0),
+            Vector4::new(0.0, -1.0, 0.0, 0.0),
+            Vector4::new(0.0, -1.0, 0.0, 0.0),
+            Vector4::new(0.0, -1.0, 0.0, 0.0),
         ]),
     ];
 
@@ -1151,13 +1242,13 @@ fn main() {
 
     let lights = [
         Light::Ambient(AmbientLightEntity { intensity: 0.2, } ),
-        Light::Point(PointLightEntity {
-            intensity: 0.6,
-            position: Vector4::new(2.0, 1.0, 0.0, 1.0),
-        } ),
         Light::Directional(DirectionalLightEntity {
             intensity: 0.2,
-            vector: Vector4::new(1.0, 4.0, 4.0, 0.0),
+            vector: Vector4::new(-1.0, 0.0, 1.0, 0.0),
+        } ),
+        Light::Point(PointLightEntity {
+            intensity: 0.6,
+            position: Vector4::new(-3.0, 2.0, -10.0, 1.0),
         } ),
     ];
 
