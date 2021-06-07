@@ -377,9 +377,18 @@ impl Vector4 {
     }
 
     /// Return the magnitude of this `Vector4`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `w` is non-zero because it makes no sense to try to determine the magnitude of a
+    /// point, only a vector. A homogeneous coordinates is a vector if `w` = 0; it's a point
+    /// otherwise.
     #[allow(dead_code)]
     pub fn magnitude(&self) -> f64 {
-        f64::sqrt(self.x * self.x + self.y * self.y + self.z * self.z) / self.w
+        if self.w != 0.0 {
+            panic!("magnitude() only accepts vectors, i.e., w = 0.0, but a point was passed");
+        }
+        f64::sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
     }
 }
 
