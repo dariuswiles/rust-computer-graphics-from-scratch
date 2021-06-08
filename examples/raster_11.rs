@@ -7,6 +7,11 @@
 //!
 //! I am not affiliated with Gabriel or his book in any way.
 
+//! BUG Clipping is still broken. Moving an object so it is partially off the screen results in
+//! visual artefacts. I believe this may be due to the winding of the triangles that are created to
+//! replace triangles that extend beyond a clipping plane. Commenting out backface culling helps,
+//! which points to the triangle windings (or maybe normals) being wrong.
+
 use std::env;
 use std::f64::consts::PI;
 use std::iter::Iterator;
@@ -910,30 +915,53 @@ fn clip_triangle(
     let v1 = vertexes.get(v1_idx).unwrap();
     let v2 = vertexes.get(v2_idx).unwrap();
 
+    let n0 = triangle.normals[0];
+    let n1 = triangle.normals[1];
+    let n2 = triangle.normals[2];
+
     let d0 = signed_distance(plane, &v0);
     let d1 = signed_distance(plane, &v1);
     let d2 = signed_distance(plane, &v2);
 
     let mut positive = Vec::new();
     let mut negative = Vec::new();
-    if d0 > 0.0 { positive.push(v0_idx); } else { negative.push(v0_idx); }
-    if d1 > 0.0 { positive.push(v1_idx); } else { negative.push(v1_idx); }
-    if d2 > 0.0 { positive.push(v2_idx); } else { negative.push(v2_idx); }
+    if d0 > 0.0 { positive.push((v0_idx, n0)); } else { negative.push((v0_idx, n0)); }
+    if d1 > 0.0 { positive.push((v1_idx, n1)); } else { negative.push((v1_idx, n1)); }
+    if d2 > 0.0 { positive.push((v2_idx, n2)); } else { negative.push((v2_idx, n2)); }
 
     match positive.len() {
         3 => triangles.push(triangle),
         2 => {
-            let a_idx = positive.pop().unwrap();
-            let b_idx = positive.pop().unwrap();
-            let c_idx = negative.pop().unwrap();
+            let (a_idx, a_normal) = positive.pop().unwrap();
+            let (b_idx, b_normal) = positive.pop().unwrap();
+            let (c_idx, c_normal) = negative.pop().unwrap();
 
             let a = vertexes.get(a_idx).unwrap();
             let b = vertexes.get(b_idx).unwrap();
             let c = vertexes.get(c_idx).unwrap();
 
+            // For the two edges of the triangle that pass through the clipping plane to the
+            // corner that is outside, determine the points where each edge intersect the plane.
+//             let a_prime = intersection(&a, &c, plane);
             let a_prime = intersection(&a, &c, plane);
             let b_prime = intersection(&b, &c, plane);
 
+            // Determine the normal at `a_prime` and `b_prime` by linearly interpolating from the
+            // corners to the points of intersection, e.g,. the former is based on `a` and `b`.
+            // Proximity ranges from 0.0 to 1.0, increasing with distance from `a` or `c`.
+            let ac_proximity = a_prime.subtract(&a).magnitude() / c.subtract(&a).magnitude();
+            let bc_proximity = b_prime.subtract(&b).magnitude() / c.subtract(&b).magnitude();
+
+            let a_prime_normal = a_normal.multiply_by(1.0 - ac_proximity).
+                add(&c_normal.multiply_by(ac_proximity));
+
+            let b_prime_normal = b_normal.multiply_by(1.0 - bc_proximity).
+                add(&b_normal.multiply_by(bc_proximity));
+
+            println!("2 in:\ta={:?}\n\tb={:?}\n\tc={:?}", &a_normal, &b_normal, &c_normal);
+            println!("\ta'={:?}\n\tb'={:?}\n", &a_prime_normal, &b_prime_normal);
+
+            // Add the two new vertexes to the list of vertexes.
             vertexes.push(a_prime);
             let a_prime_idx = vertexes.len() - 1;
             vertexes.push(b_prime);
@@ -942,26 +970,26 @@ fn clip_triangle(
             triangles.push(Triangle::new(
                 [a_idx, b_idx, a_prime_idx],
                 triangle.color,
-                [ // TODO These are the normals for the corners. W/o book, I need to determine what this should be. Maybe interpolate normals from corners?
-                    Vector4::new(0.0, 1.0, 0.0, 1.0),
-                    Vector4::new(0.0, 1.0, 0.0, 1.0),
-                    Vector4::new(0.0, 1.0, 0.0, 1.0),
+                [
+                    a_normal,
+                    b_normal,
+                    a_prime_normal,
                 ]
             ));
             triangles.push(Triangle::new(
                 [a_prime_idx, b_idx, b_prime_idx],
                 triangle.color,
-                [ // TODO These are the normals for the corners. W/o book, I need to determine what this should be. Maybe interpolate normals from corners?
-                    Vector4::new(0.0, 1.0, 0.0, 1.0),
-                    Vector4::new(0.0, 1.0, 0.0, 1.0),
-                    Vector4::new(0.0, 1.0, 0.0, 1.0),
+                [
+                    a_prime_normal,
+                    b_normal,
+                    b_prime_normal,
                 ]
             ));
         }
         1 => {
-            let a_idx = positive.pop().unwrap();
-            let b_idx = negative.pop().unwrap();
-            let c_idx = negative.pop().unwrap();
+            let (a_idx, a_normal) = positive.pop().unwrap();
+            let (b_idx, b_normal) = negative.pop().unwrap();
+            let (c_idx, c_normal) = negative.pop().unwrap();
 
             let a = vertexes.get(a_idx).unwrap();
             let b = vertexes.get(b_idx).unwrap();
@@ -969,6 +997,21 @@ fn clip_triangle(
 
             let b_prime = intersection(&a, &b, plane);
             let c_prime = intersection(&a, &c, plane);
+
+            // Determine the normal at `a_prime` and `b_prime` by linearly interpolating from the
+            // corners to the points of intersection, e.g,. the former is based on `a` and `b`.
+            // Proximity ranges from 0.0 to 1.0, increasing with distance from `a`.
+            let ab_proximity = b_prime.subtract(&a).magnitude() / b.subtract(&a).magnitude();
+            let ac_proximity = c_prime.subtract(&a).magnitude() / c.subtract(&a).magnitude();
+
+            let b_prime_normal = a_normal.multiply_by(1.0 - ab_proximity).
+                add(&b_normal.multiply_by(ab_proximity));
+
+            let c_prime_normal = a_normal.multiply_by(1.0 - ac_proximity).
+                add(&c_normal.multiply_by(ac_proximity));
+
+            println!("1 in:\ta={:?}\n\tb={:?}\n\tc={:?}", &a_normal, &b_normal, &c_normal);
+            println!("\tb'={:?}\n\tc'={:?}\n", &b_prime_normal, &c_prime_normal);
 
             vertexes.push(b_prime);
             let b_prime_idx = vertexes.len() - 1;
@@ -978,10 +1021,10 @@ fn clip_triangle(
             triangles.push(Triangle::new(
                 [a_idx, b_prime_idx, c_prime_idx],
                 triangle.color,
-                [ // TODO These are the normals for the corners. W/o book, I need to determine what this should be. Maybe interpolate normals from corners?
-                    Vector4::new(0.0, 1.0, 0.0, 1.0),
-                    Vector4::new(0.0, 1.0, 0.0, 1.0),
-                    Vector4::new(0.0, 1.0, 0.0, 1.0),
+                [
+                    a_normal,
+                    b_prime_normal,
+                    c_prime_normal,
                 ]
             ));
         }
@@ -1221,6 +1264,7 @@ fn main() {
         ModelInstance::new(
             &sphere,
             Vector4::new(1.75, -0.5, 7.0, 1.0),
+//             Vector4::new(2.8, -0.38, 6.25, 1.0), // TODO Use to see clipping problems.
             Matrix4x4::identity(),
             1.5,
         ),
