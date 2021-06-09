@@ -1034,13 +1034,13 @@ fn clip_triangle(
 }
 
 
-// Clips `model` against the five `clipping_planes`, modifying the lists of vertexes and triangles
-// so that only objects within the clip volume are included. Triangles that are only partially
-// within the volume have their vertexes redefined to the boundary of the clipping volume, and may
-// be split into two triangles if needed.
-//
-// If `model` is completely outside the clipping volume, returns `None`. Otherwise, returns a new
-// `Model` containing the modified vertexes and triangles.
+// Applies `transform` to the `model`'s `bounds_center` to translate it to camera coordinates, and
+// immediately returns `None` if the entire model is outside one of the `clipping_planes`.
+// Otherwise, all vertexes in the model are translated to camera coordinates using `transform`.
+// Each triangle is then compared to each of the clipping planes, based on the position of the
+// transformed vertexes, to see if the triangle is entirely within the viewing volume, partially
+// within or completely outside. The list of triangles and vertexes are updated after each
+// `clipping_plane` pass is complete as some triangles may intersect multiple clipping planes.
 fn transform_and_clip(clipping_planes: &[Plane; 5], model: &Model, transform: &Matrix4x4)
     -> Option<Model> {
 
