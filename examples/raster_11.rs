@@ -379,29 +379,26 @@ fn generate_sphere(divs: i32, color: &Rgb) -> Model {
 
     // Generate triangles.
     for d in 0..divs {
-        for i in 0..divs-1 {
+        for i in 0..divs {
             let i0 = (d*divs + i) as usize;
+            let i1 = ((d + 1) * divs + (i + 1) % divs) as usize;
+            let i2 = (d*divs + (i + 1) % divs) as usize;
 
-            let t0_idx0 = i0;
-            let t0_idx1 = i0+(divs as usize)+1;
-            let t0_idx2 = i0+1;
-            let t0_ver0 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t0_idx0).unwrap()), 0.0);
-            let t0_ver1 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t0_idx1).unwrap()), 0.0);
-            let t0_ver2 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t0_idx2).unwrap()), 0.0);
+            let t0_v0 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(i0).unwrap()), 0.0);
+            let t0_v1 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(i1).unwrap()), 0.0);
+            let t0_v2 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(i2).unwrap()), 0.0);
             triangles.push(Triangle::new(
-                [t0_idx0, t0_idx1, t0_idx2],
+                [i0, i1, i2],
                 *color,
-                [t0_ver0, t0_ver1, t0_ver2],
+                [t0_v0, t0_v1, t0_v2],
             ));
 
-            let t1_idx0 = i0;
-            let t1_idx1 = i0+(divs as usize);
-            let t1_idx2 = i0+(divs as usize)+1;
-            let t1_ver0 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t1_idx0).unwrap()), 0.0);
-            let t1_ver1 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t1_idx1).unwrap()), 0.0);
-            let t1_ver2 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t1_idx2).unwrap()), 0.0);
+            let t1_i1 = i0+(divs as usize);
+            let t1_ver0 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(i0).unwrap()), 0.0);
+            let t1_ver1 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(t1_i1).unwrap()), 0.0);
+            let t1_ver2 = Vector4::from_vector3(&Vector3::from_vector4(&vertexes.get(i1).unwrap()), 0.0);
             triangles.push(Triangle::new(
-                [t1_idx0, t1_idx1, t1_idx2],
+                [i0, t1_i1, i1],
                 *color,
                 [t1_ver0, t1_ver1, t1_ver2],
             ));
