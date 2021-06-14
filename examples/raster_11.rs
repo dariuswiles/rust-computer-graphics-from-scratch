@@ -7,11 +7,6 @@
 //!
 //! I am not affiliated with Gabriel or his book in any way.
 
-//! BUG Clipping is still broken. Moving an object so it is partially off the screen results in
-//! visual artefacts. I believe this may be due to the winding of the triangles that are created to
-//! replace triangles that extend beyond a clipping plane. Commenting out backface culling helps,
-//! which points to the triangle windings (or maybe normals) being wrong.
-
 use std::env;
 use std::f64::consts::PI;
 use std::iter::Iterator;
@@ -876,16 +871,18 @@ fn signed_distance(plane: &Plane, vertex: &Vector4) -> f64 {
 }
 
 
-/// Returns the point where line `v0` to `v1` intersects `plane`.
+/// Returns a tuple of the point where line `v0` to `v1` intersects `plane`, and how far along
+/// this line the intersect occurs. The latter ranges from 0.0 to 1.0, where 0.0 is an intersect
+/// at `v0`, and 1.0 an intersect at `v1`.
 ///
 /// # Panics
 ///
 /// Will panic with a divide by zero if the line `v0` to `v1` is parallel to `plane`.
-fn intersection(v0: &Vector4, v1: &Vector4, plane: &Plane) -> Vector4 {
+fn intersection(v0: &Vector4, v1: &Vector4, plane: &Plane) -> (Vector4, f64) {
     let t = (-plane.distance - &plane.normal.dot(v0)) /
             (&plane.normal.dot(&v1.subtract(v0)));
 
-    v0.add(&v1.subtract(v0).multiply_by(t))
+    (v0.add(&v1.subtract(v0).multiply_by(t)), t)
 }
 
 
@@ -908,9 +905,9 @@ fn clip_triangle(
     let v1_idx = triangle.indexes[1];
     let v2_idx = triangle.indexes[2];
 
-    let v0 = vertexes.get(v0_idx).unwrap();
-    let v1 = vertexes.get(v1_idx).unwrap();
-    let v2 = vertexes.get(v2_idx).unwrap();
+    let v0 = vertexes.get(v0_idx).unwrap().clone();
+    let v1 = vertexes.get(v1_idx).unwrap().clone();
+    let v2 = vertexes.get(v2_idx).unwrap().clone();
 
     let n0 = triangle.normals[0];
     let n1 = triangle.normals[1];
@@ -920,109 +917,183 @@ fn clip_triangle(
     let d1 = signed_distance(plane, &v1);
     let d2 = signed_distance(plane, &v2);
 
-    let mut positive = Vec::new();
-    let mut negative = Vec::new();
-    if d0 > 0.0 { positive.push((v0_idx, n0)); } else { negative.push((v0_idx, n0)); }
-    if d1 > 0.0 { positive.push((v1_idx, n1)); } else { negative.push((v1_idx, n1)); }
-    if d2 > 0.0 { positive.push((v2_idx, n2)); } else { negative.push((v2_idx, n2)); }
+    let mut inside_vertex_count = 0;
+    let mut v0_is_inside = false;
+    let mut v1_is_inside = false;
+    let mut v2_is_inside = false;
+    if d0 > 0.0 { inside_vertex_count += 1; v0_is_inside = true; }
+    if d1 > 0.0 { inside_vertex_count += 1; v1_is_inside = true; }
+    if d2 > 0.0 { inside_vertex_count += 1; v2_is_inside = true; }
 
-    match positive.len() {
+    match inside_vertex_count {
         3 => triangles.push(triangle),
         2 => {
-            let (a_idx, a_normal) = positive.pop().unwrap();
-            let (b_idx, b_normal) = positive.pop().unwrap();
-            let (c_idx, c_normal) = negative.pop().unwrap();
+            // Two vertexes are inside the clipping volume. Discarding the part of the triangle
+            // outside the clipping volume leaves an irregular quadilateral which is created as
+            // two new triangles. The vertexes of one triangle are formed from the two vertexes
+            // inside the clipping volume and one of the points of intersection between a triangle
+            // edge that intersects the clipping plane. The other triangle is formed from one of
+            // the vertexes inside the clipping volume and both points of intersection between the
+            // triangle edges that intersect the clipping plane.
 
-            let a = vertexes.get(a_idx).unwrap();
-            let b = vertexes.get(b_idx).unwrap();
-            let c = vertexes.get(c_idx).unwrap();
+            if !v0_is_inside {
+                let (intersect10, proximity10) = intersection(&v1, &v0, plane);
+                let (intersect20, proximity20) = intersection(&v2, &v0, plane);
 
-            // For the two edges of the triangle that pass through the clipping plane to the
-            // corner that is outside, determine the points where each edge intersect the plane.
-//             let a_prime = intersection(&a, &c, plane);
-            let a_prime = intersection(&a, &c, plane);
-            let b_prime = intersection(&b, &c, plane);
+                // Determine the normal at the intersection by linearly interpolating between the
+                // normals at the ends of the line.
+                let normal10 = n1.multiply_by(1.0 - proximity10).add(&n0.multiply_by(proximity10));
+                let normal20 = n2.multiply_by(1.0 - proximity20).add(&n0.multiply_by(proximity20));
 
-            // Determine the normal at `a_prime` and `b_prime` by linearly interpolating from the
-            // corners to the points of intersection, e.g,. the former is based on `a` and `b`.
-            // Proximity ranges from 0.0 to 1.0, increasing with distance from `a` or `c`.
-            let ac_proximity = a_prime.subtract(&a).magnitude() / c.subtract(&a).magnitude();
-            let bc_proximity = b_prime.subtract(&b).magnitude() / c.subtract(&b).magnitude();
+                assert!(proximity10>0.0);
+                assert!(proximity20>0.0);
+                assert!(proximity20<1.0);
 
-            let a_prime_normal = a_normal.multiply_by(1.0 - ac_proximity).
-                add(&c_normal.multiply_by(ac_proximity));
+                vertexes.push(intersect10);
+                let intersect10_idx = vertexes.len() - 1;
+                vertexes.push(intersect20);
+                let intersect20_idx = vertexes.len() - 1;
 
-            let b_prime_normal = b_normal.multiply_by(1.0 - bc_proximity).
-                add(&b_normal.multiply_by(bc_proximity));
+                triangles.push(Triangle::new(
+                    [v1_idx, v2_idx, intersect20_idx],
+                    triangle.color,
+                    [n1, n2, normal20]
+                ));
 
-            println!("2 in:\ta={:?}\n\tb={:?}\n\tc={:?}", &a_normal, &b_normal, &c_normal);
-            println!("\ta'={:?}\n\tb'={:?}\n", &a_prime_normal, &b_prime_normal);
+                triangles.push(Triangle::new(
+                    [v1_idx, intersect20_idx, intersect10_idx],
+                    triangle.color,
+                    [n1, normal20, normal10]
+                ));
+            } else if !v1_is_inside {
+                let (intersect01, proximity01) = intersection(&v0, &v1, plane);
+                let (intersect21, proximity21) = intersection(&v2, &v1, plane);
 
-            // Add the two new vertexes to the list of vertexes.
-            vertexes.push(a_prime);
-            let a_prime_idx = vertexes.len() - 1;
-            vertexes.push(b_prime);
-            let b_prime_idx = vertexes.len() - 1;
+                // Determine the normal at the intersection by linearly interpolating between the
+                // normals at the ends of the line.
+                let normal01 = n0.multiply_by(1.0 - proximity01).add(&n1.multiply_by(proximity01));
+                let normal21 = n2.multiply_by(1.0 - proximity21).add(&n1.multiply_by(proximity21));
 
-            triangles.push(Triangle::new(
-                [a_idx, b_idx, a_prime_idx],
-                triangle.color,
-                [
-                    a_normal,
-                    b_normal,
-                    a_prime_normal,
-                ]
-            ));
-            triangles.push(Triangle::new(
-                [a_prime_idx, b_idx, b_prime_idx],
-                triangle.color,
-                [
-                    a_prime_normal,
-                    b_normal,
-                    b_prime_normal,
-                ]
-            ));
+                assert!(proximity01>0.0);
+                assert!(proximity21>0.0);
+                assert!(proximity21<1.0);
+
+                vertexes.push(intersect01);
+                let intersect01_idx = vertexes.len() - 1;
+                vertexes.push(intersect21);
+                let intersect21_idx = vertexes.len() - 1;
+
+                triangles.push(Triangle::new(
+                    [v2_idx, v0_idx, intersect01_idx],
+                    triangle.color,
+                    [n2, n0, normal01]
+                ));
+
+                triangles.push(Triangle::new(
+                    [v2_idx, intersect01_idx, intersect21_idx],
+                    triangle.color,
+                    [n2, normal01, normal21]
+                ));
+            } else {
+
+                assert!(!v2_is_inside);
+
+                let (intersect02, proximity02) = intersection(&v0, &v2, plane);
+                let (intersect12, proximity12) = intersection(&v1, &v2, plane);
+
+                // Determine the normal at the intersection by linearly interpolating between the
+                // normals at the ends of the line.
+                let normal02 = n0.multiply_by(1.0 - proximity02).add(&n2.multiply_by(proximity02));
+                let normal12 = n1.multiply_by(1.0 - proximity12).add(&n2.multiply_by(proximity12));
+
+                assert!(proximity02>0.0);
+                assert!(proximity12>0.0);
+                assert!(proximity12<1.0);
+
+                vertexes.push(intersect02);
+                let intersect02_idx = vertexes.len() - 1;
+                vertexes.push(intersect12);
+                let intersect12_idx = vertexes.len() - 1;
+
+                triangles.push(Triangle::new(
+                    [v0_idx, v1_idx, intersect12_idx],
+                    triangle.color,
+                    [n0, n1, normal12]
+                ));
+
+                triangles.push(Triangle::new(
+                    [v0_idx, intersect12_idx, intersect02_idx],
+                    triangle.color,
+                    [n0, normal12, normal02]
+                ));
+            }
         }
         1 => {
-            let (a_idx, a_normal) = positive.pop().unwrap();
-            let (b_idx, b_normal) = negative.pop().unwrap();
-            let (c_idx, c_normal) = negative.pop().unwrap();
+            // One vertex is inside the clipping volume. A new triangle is created with this vertex
+            // and two new vertexes at the positions the two sides of the triangle intersect the
+            // clipping plane.
 
-            let a = vertexes.get(a_idx).unwrap();
-            let b = vertexes.get(b_idx).unwrap();
-            let c = vertexes.get(c_idx).unwrap();
+            let (mut new0_idx, mut new1_idx, mut new2_idx) = (usize::MAX, usize::MAX, usize::MAX);
+            let mut new0_normal = Vector4::new(f64::INFINITY, f64::INFINITY, f64::INFINITY, f64::INFINITY);
+            let mut new1_normal = Vector4::new(f64::INFINITY, f64::INFINITY, f64::INFINITY, f64::INFINITY);
+            let mut new2_normal = Vector4::new(f64::INFINITY, f64::INFINITY, f64::INFINITY, f64::INFINITY);
+            let inside_vertex;
+            let inside_normal;
 
-            let b_prime = intersection(&a, &b, plane);
-            let c_prime = intersection(&a, &c, plane);
+            if v0_is_inside {
+                inside_vertex = v0.clone();
+                inside_normal = &n0;
+                new0_idx = v0_idx;
+                new0_normal = n0.clone();
+            } else if v1_is_inside {
+                inside_vertex = v1.clone();
+                inside_normal = &n1;
+                new1_idx = v1_idx;
+                new1_normal = n1.clone();
+            } else {
+                inside_vertex = v2.clone();
+                inside_normal = &n2;
+                new2_idx = v2_idx;
+                new2_normal = n2.clone();
+            }
 
-            // Determine the normal at `a_prime` and `b_prime` by linearly interpolating from the
-            // corners to the points of intersection, e.g,. the former is based on `a` and `b`.
-            // Proximity ranges from 0.0 to 1.0, increasing with distance from `a`.
-            let ab_proximity = b_prime.subtract(&a).magnitude() / b.subtract(&a).magnitude();
-            let ac_proximity = c_prime.subtract(&a).magnitude() / c.subtract(&a).magnitude();
+            if !v0_is_inside {
+                let (intersect, proximity) = intersection(&inside_vertex, &v0, plane);
+                vertexes.push(intersect);
+                new0_idx = vertexes.len() - 1;
 
-            let b_prime_normal = a_normal.multiply_by(1.0 - ab_proximity).
-                add(&b_normal.multiply_by(ab_proximity));
+                // Determine the normal at the intersection by linearly interpolating between the
+                // normals at the ends of the line.
+                new0_normal = inside_normal.multiply_by(1.0 - proximity)
+                    .add(&n0.multiply_by(proximity));
+            }
 
-            let c_prime_normal = a_normal.multiply_by(1.0 - ac_proximity).
-                add(&c_normal.multiply_by(ac_proximity));
+            if !v1_is_inside {
+                let (intersect, proximity) = intersection(&inside_vertex, &v1, plane);
+                vertexes.push(intersect);
+                new1_idx = vertexes.len() - 1;
 
-            println!("1 in:\ta={:?}\n\tb={:?}\n\tc={:?}", &a_normal, &b_normal, &c_normal);
-            println!("\tb'={:?}\n\tc'={:?}\n", &b_prime_normal, &c_prime_normal);
+                // Determine the normal at the intersection by linearly interpolating between the
+                // normals at the ends of the line.
+                new1_normal = inside_normal.multiply_by(1.0 - proximity)
+                    .add(&n1.multiply_by(proximity));
+            }
 
-            vertexes.push(b_prime);
-            let b_prime_idx = vertexes.len() - 1;
-            vertexes.push(c_prime);
-            let c_prime_idx = vertexes.len() - 1;
+            if !v2_is_inside {
+                let (intersect, proximity) = intersection(&inside_vertex, &v2, plane);
+                vertexes.push(intersect);
+                new2_idx = vertexes.len() - 1;
+
+                // Determine the normal at the intersection by linearly interpolating between the
+                // normals at the ends of the line.
+                new2_normal = inside_normal.multiply_by(1.0 - proximity)
+                    .add(&n2.multiply_by(proximity));
+            }
 
             triangles.push(Triangle::new(
-                [a_idx, b_prime_idx, c_prime_idx],
+                [new0_idx, new1_idx, new2_idx],
                 triangle.color,
-                [
-                    a_normal,
-                    b_prime_normal,
-                    c_prime_normal,
-                ]
+                [new0_normal, new1_normal, new2_normal]
             ));
         }
         0 => {}
@@ -1261,7 +1332,9 @@ fn main() {
         ModelInstance::new(
             &sphere,
             Vector4::new(1.75, -0.5, 7.0, 1.0),
-//             Vector4::new(2.8, -0.38, 6.25, 1.0), // TODO Use to see clipping problems.
+//          Vector4::new(2.8, -1.38, 6.25, 1.0), // Use to see clipping problems on bottom-right.
+//          Vector4::new(-2.8, -0.38, 7.0, 1.0), // Use to see clipping problems bottom-left.
+//          Vector4::new(-2.0, 2.78, 7.25, 1.0), // Use to see clipping problems top-left.
             Matrix4x4::identity(),
             1.5,
         ),
