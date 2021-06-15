@@ -101,15 +101,15 @@ impl Point {
 /// A triangle, consisting of 3 vertex indices defining the position of its corners, and a color.
 #[derive(Clone, Copy, Debug)]
 struct Triangle {
-    pub vertices: (usize, usize, usize),
+    pub indexes: [usize; 3],
     pub color: Rgb,
 }
 
 impl Triangle {
     #[allow(dead_code)]
-    fn new(vertices: (usize, usize, usize), color: Rgb) -> Self {
+    fn new(vertices: [usize; 3], color: Rgb) -> Self {
         Self {
-            vertices: vertices,
+            indexes: vertices,
             color: color
         }
     }
@@ -249,9 +249,9 @@ fn draw_line(canvas: &mut Canvas, p0: &Point, p1: &Point, color: &Rgb) {
 fn render_triangle(canvas: &mut Canvas, triangle: &Triangle, projected: &Vec<Point>) {
     draw_wireframe_triangle(
         canvas,
-        &projected.get(triangle.vertices.0).unwrap(),
-        &projected.get(triangle.vertices.1).unwrap(),
-        &projected.get(triangle.vertices.2).unwrap(),
+        &projected.get(triangle.indexes[0]).unwrap(),
+        &projected.get(triangle.indexes[1]).unwrap(),
+        &projected.get(triangle.indexes[2]).unwrap(),
         &triangle.color
     );
 }
@@ -300,7 +300,7 @@ fn intersection(v0: &Vector4, v1: &Vector4, plane: &Plane) -> Vector4 {
 /// portion of `triangle` are created.
 ///
 /// The triangle (or triangles) necessary to render `triangle` are added to `triangles`, and any
-/// additional vertices required are added to `vertices`. If `triangle` is completely within the
+/// additional vertexes required are added to `vertexes`. If `triangle` is completely within the
 /// clipping volume, the only change is to add `triangle` to `triangles`. If `triangle` is
 /// completely outside the clipping volume, nothing is added to `triangles` as no rendering is
 /// required.
@@ -308,69 +308,139 @@ fn clip_triangle(
     triangle: Triangle,
     plane: &Plane,
     triangles: &mut Vec<Triangle>,
-    vertices: &mut Vec<Vector4>
+    vertexes: &mut Vec<Vector4>
 ) {
-    let v0_idx = triangle.vertices.0;
-    let v1_idx = triangle.vertices.1;
-    let v2_idx = triangle.vertices.2;
+    let v0_idx = triangle.indexes[0];
+    let v1_idx = triangle.indexes[1];
+    let v2_idx = triangle.indexes[2];
 
-    let v0 = vertices.get(v0_idx).unwrap();
-    let v1 = vertices.get(v1_idx).unwrap();
-    let v2 = vertices.get(v2_idx).unwrap();
+    let v0 = vertexes.get(v0_idx).unwrap().clone();
+    let v1 = vertexes.get(v1_idx).unwrap().clone();
+    let v2 = vertexes.get(v2_idx).unwrap().clone();
 
     let d0 = signed_distance(plane, &v0);
     let d1 = signed_distance(plane, &v1);
     let d2 = signed_distance(plane, &v2);
 
-    let mut positive = Vec::new();
-    let mut negative = Vec::new();
-    if d0 > 0.0 { positive.push(v0_idx); } else { negative.push(v0_idx); }
-    if d1 > 0.0 { positive.push(v1_idx); } else { negative.push(v1_idx); }
-    if d2 > 0.0 { positive.push(v2_idx); } else { negative.push(v2_idx); }
+    let mut inside_vertex_count = 0;
+    let mut v0_is_inside = false;
+    let mut v1_is_inside = false;
+    let mut v2_is_inside = false;
+    if d0 > 0.0 { inside_vertex_count += 1; v0_is_inside = true; }
+    if d1 > 0.0 { inside_vertex_count += 1; v1_is_inside = true; }
+    if d2 > 0.0 { inside_vertex_count += 1; v2_is_inside = true; }
 
-    match positive.len() {
+    match inside_vertex_count {
         3 => triangles.push(triangle),
         2 => {
-            let a_idx = positive.pop().unwrap();
-            let b_idx = positive.pop().unwrap();
-            let c_idx = negative.pop().unwrap();
+            // Two vertexes are inside the clipping volume. Discarding the part of the triangle
+            // outside the clipping volume leaves an irregular quadilateral which is created as
+            // two new triangles. The vertexes of one triangle are formed from the two vertexes
+            // inside the clipping volume and one of the points of intersection between a triangle
+            // edge that intersects the clipping plane. The other triangle is formed from one of
+            // the vertexes inside the clipping volume and both points of intersection between the
+            // triangle edges that intersect the clipping plane.
 
-            let a = vertices.get(a_idx).unwrap();
-            let b = vertices.get(b_idx).unwrap();
-            let c = vertices.get(c_idx).unwrap();
+            if !v0_is_inside {
+                let intersect10 = intersection(&v1, &v0, plane);
+                let intersect20 = intersection(&v2, &v0, plane);
 
-            let a_prime = intersection(&a, &c, plane);
-            let b_prime = intersection(&b, &c, plane);
+                vertexes.push(intersect10);
+                let intersect10_idx = vertexes.len() - 1;
+                vertexes.push(intersect20);
+                let intersect20_idx = vertexes.len() - 1;
 
-            vertices.push(a_prime);
-            let a_prime_idx = vertices.len() - 1;
-            vertices.push(b_prime);
-            let b_prime_idx = vertices.len() - 1;
+                triangles.push(Triangle::new(
+                    [v1_idx, v2_idx, intersect20_idx],
+                    triangle.color
+                ));
 
-            triangles.push(Triangle::new((a_idx, b_idx, a_prime_idx), triangle.color));
-            triangles.push(Triangle::new((a_prime_idx, b_idx, b_prime_idx), triangle.color));
+                triangles.push(Triangle::new(
+                    [v1_idx, intersect20_idx, intersect10_idx],
+                    triangle.color
+                ));
+            } else if !v1_is_inside {
+                let intersect01 = intersection(&v0, &v1, plane);
+                let intersect21 = intersection(&v2, &v1, plane);
+
+                vertexes.push(intersect01);
+                let intersect01_idx = vertexes.len() - 1;
+                vertexes.push(intersect21);
+                let intersect21_idx = vertexes.len() - 1;
+
+                triangles.push(Triangle::new(
+                    [v2_idx, v0_idx, intersect01_idx],
+                    triangle.color
+                ));
+
+                triangles.push(Triangle::new(
+                    [v2_idx, intersect01_idx, intersect21_idx],
+                    triangle.color
+                ));
+            } else {
+                let intersect02 = intersection(&v0, &v2, plane);
+                let intersect12 = intersection(&v1, &v2, plane);
+
+                vertexes.push(intersect02);
+                let intersect02_idx = vertexes.len() - 1;
+                vertexes.push(intersect12);
+                let intersect12_idx = vertexes.len() - 1;
+
+                triangles.push(Triangle::new(
+                    [v0_idx, v1_idx, intersect12_idx],
+                    triangle.color
+                ));
+
+                triangles.push(Triangle::new(
+                    [v0_idx, intersect12_idx, intersect02_idx],
+                    triangle.color
+                ));
+            }
         }
         1 => {
-            let a_idx = positive.pop().unwrap();
-            let b_idx = negative.pop().unwrap();
-            let c_idx = negative.pop().unwrap();
+            // One vertex is inside the clipping volume. A new triangle is created with this vertex
+            // and two new vertexes at the positions the two sides of the triangle intersect the
+            // clipping plane.
 
-            let a = vertices.get(a_idx).unwrap();
-            let b = vertices.get(b_idx).unwrap();
-            let c = vertices.get(c_idx).unwrap();
+            let (mut new0_idx, mut new1_idx, mut new2_idx) = (usize::MAX, usize::MAX, usize::MAX);
+            let inside_vertex;
 
-            let b_prime = intersection(&a, &b, plane);
-            let c_prime = intersection(&a, &c, plane);
+            if v0_is_inside {
+                inside_vertex = v0.clone();
+                new0_idx = v0_idx;
+            } else if v1_is_inside {
+                inside_vertex = v1.clone();
+                new1_idx = v1_idx;
+            } else {
+                inside_vertex = v2.clone();
+                new2_idx = v2_idx;
+            }
 
-            vertices.push(b_prime);
-            let b_prime_idx = vertices.len() - 1;
-            vertices.push(c_prime);
-            let c_prime_idx = vertices.len() - 1;
+            if !v0_is_inside {
+                let intersect = intersection(&inside_vertex, &v0, plane);
+                vertexes.push(intersect);
+                new0_idx = vertexes.len() - 1;
+            }
 
-            triangles.push(Triangle::new((a_idx, b_prime_idx, c_prime_idx), triangle.color));
+            if !v1_is_inside {
+                let intersect = intersection(&inside_vertex, &v1, plane);
+                vertexes.push(intersect);
+                new1_idx = vertexes.len() - 1;
+            }
+
+            if !v2_is_inside {
+                let intersect = intersection(&inside_vertex, &v2, plane);
+                vertexes.push(intersect);
+                new2_idx = vertexes.len() - 1;
+            }
+
+            triangles.push(Triangle::new(
+                [new0_idx, new1_idx, new2_idx],
+                triangle.color
+            ));
         }
         0 => {}
-        _ => panic!("Internal error: unexpected number of triangle vertices in clipping volume"),
+        _ => panic!("Internal error: unexpected number of triangle vertexes in clipping volume"),
     }
 }
 
@@ -497,18 +567,18 @@ fn main() {
 
     // Define triangles with 3-tuples of indexes into the previously defined vertices.
     let triangles = vec![
-        Triangle::new((0, 1, 2), red),
-        Triangle::new((0, 2, 3), red),
-        Triangle::new((4, 0, 3), green),
-        Triangle::new((4, 3, 7), green),
-        Triangle::new((5, 4, 7), blue),
-        Triangle::new((5, 7, 6), blue),
-        Triangle::new((1, 5, 6), yellow),
-        Triangle::new((1, 6, 2), yellow),
-        Triangle::new((4, 5, 1), purple),
-        Triangle::new((4, 1, 0), purple),
-        Triangle::new((2, 6, 7), cyan),
-        Triangle::new((2, 7, 3), cyan),
+        Triangle::new([0, 1, 2], red),
+        Triangle::new([0, 2, 3], red),
+        Triangle::new([4, 0, 3], green),
+        Triangle::new([4, 3, 7], green),
+        Triangle::new([5, 4, 7], blue),
+        Triangle::new([5, 7, 6], blue),
+        Triangle::new([1, 5, 6], yellow),
+        Triangle::new([1, 6, 2], yellow),
+        Triangle::new([4, 5, 1], purple),
+        Triangle::new([4, 1, 0], purple),
+        Triangle::new([2, 6, 7], cyan),
+        Triangle::new([2, 7, 3], cyan),
     ];
 
     let cube = Model {
