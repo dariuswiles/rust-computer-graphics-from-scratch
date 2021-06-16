@@ -945,10 +945,6 @@ fn clip_triangle(
                 let normal10 = n1.multiply_by(1.0 - proximity10).add(&n0.multiply_by(proximity10));
                 let normal20 = n2.multiply_by(1.0 - proximity20).add(&n0.multiply_by(proximity20));
 
-                assert!(proximity10>0.0);
-                assert!(proximity20>0.0);
-                assert!(proximity20<1.0);
-
                 vertexes.push(intersect10);
                 let intersect10_idx = vertexes.len() - 1;
                 vertexes.push(intersect20);
@@ -974,10 +970,6 @@ fn clip_triangle(
                 let normal01 = n0.multiply_by(1.0 - proximity01).add(&n1.multiply_by(proximity01));
                 let normal21 = n2.multiply_by(1.0 - proximity21).add(&n1.multiply_by(proximity21));
 
-                assert!(proximity01>0.0);
-                assert!(proximity21>0.0);
-                assert!(proximity21<1.0);
-
                 vertexes.push(intersect01);
                 let intersect01_idx = vertexes.len() - 1;
                 vertexes.push(intersect21);
@@ -995,9 +987,6 @@ fn clip_triangle(
                     [n2, normal01, normal21]
                 ));
             } else {
-
-                assert!(!v2_is_inside);
-
                 let (intersect02, proximity02) = intersection(&v0, &v2, plane);
                 let (intersect12, proximity12) = intersection(&v1, &v2, plane);
 
@@ -1005,10 +994,6 @@ fn clip_triangle(
                 // normals at the ends of the line.
                 let normal02 = n0.multiply_by(1.0 - proximity02).add(&n2.multiply_by(proximity02));
                 let normal12 = n1.multiply_by(1.0 - proximity12).add(&n2.multiply_by(proximity12));
-
-                assert!(proximity02>0.0);
-                assert!(proximity12>0.0);
-                assert!(proximity12<1.0);
 
                 vertexes.push(intersect02);
                 let intersect02_idx = vertexes.len() - 1;
