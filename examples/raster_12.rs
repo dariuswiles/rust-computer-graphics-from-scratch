@@ -46,12 +46,20 @@ enum Normals {
     Model,
 }
 
+/// User-selectable choice for linear or perspective texture mapping.
+#[derive(Copy, Clone, Debug)]
+enum TexturePerspective {
+    Linear,
+    Perspective,
+}
+
 /// A structure to hold all user-selectable option choices.
 #[derive(Copy, Clone, Debug)]
 struct UserChoices {
     lighting: Lighting,
     shading: Shading,
     normals: Normals,
+    texture_perspective: TexturePerspective,
 }
 
 
@@ -294,7 +302,7 @@ impl Texture {
     /// # Panics
     ///
     /// Panics if either `u`,`v`, or both, are not in the range 0.0 to 1.0.
-    pub fn get_pixel(&self, u: f64, v: f64) -> Rgb {
+    pub fn get_texel(&self, u: f64, v: f64) -> Rgb {
         if (u < 0.0) | (u > 1.0) | (v < 0.0) | (v > 1.0) {
             panic!(
                 "Tried to access a texture pixel with a coordinate outside the range 0.0 to 1.0"
@@ -313,12 +321,13 @@ impl Texture {
 /// line containing the name used to invoke this command, as passed in `cmd_name`.
 fn help_information(cmd_name: &str) -> String {
     format!(
-r#"Usage: {} [lighting] [shading] [normals]
+r#"Usage: {} [lighting] [shading] [normals] [depth]
 Where lighting is one of: diffuse specular both
 and shading is one of: flat gouraud phong
 and normals is one of: computed model
+and depth calculation used for textures is one of: linear perspective
 
-The defaults are: both phong model
+The defaults are: both phong model perspective
 "#, cmd_name)
 }
 
@@ -339,6 +348,7 @@ fn parse_command_line_arguments() -> Result<UserChoices, ()>{
     let mut arg_lighting = Lighting::Both;
     let mut arg_shading = Shading::Phong;
     let mut arg_normals = Normals::Model;
+    let mut arg_depth = TexturePerspective::Perspective;
 
     for arg in args {
         match arg.to_lowercase().as_str() {
@@ -351,6 +361,8 @@ fn parse_command_line_arguments() -> Result<UserChoices, ()>{
             "phong" => arg_shading = Shading::Phong,
             "computed" => arg_normals = Normals::Computed,
             "model" => arg_normals = Normals::Model,
+            "linear" => arg_depth = TexturePerspective::Linear,
+            "perspective" => arg_depth = TexturePerspective::Perspective,
             _ => arg_unrecognized = true,
         }
     }
@@ -362,7 +374,8 @@ fn parse_command_line_arguments() -> Result<UserChoices, ()>{
         return Result::Err(());
     }
 
-    Result::Ok(UserChoices { lighting: arg_lighting, shading: arg_shading, normals: arg_normals } )
+    Result::Ok(UserChoices { lighting: arg_lighting, shading: arg_shading, normals: arg_normals,
+        texture_perspective: arg_depth } )
 }
 
 
@@ -696,14 +709,40 @@ fn render_triangle(
         p2.y, 1.0/p2.depth);
 
     // As above, but interpolate texture coordinates.
-    let (tu02, tu012) = edge_interpolate(
-        p0.y, triangle.uvs[i0].x,
-        p1.y, triangle.uvs[i1].x,
-        p2.y, triangle.uvs[i2].x);
-    let (tv02, tv012) = edge_interpolate(
-        p0.y, triangle.uvs[i0].y,
-        p1.y, triangle.uvs[i1].y,
-        p2.y, triangle.uvs[i2].y);
+    let (tu02, tu012);
+    let (tv02, tv012);
+    match user_choices.texture_perspective {
+        TexturePerspective::Linear => {
+            let tu_both = edge_interpolate(
+                p0.y, triangle.uvs[i0].x,
+                p1.y, triangle.uvs[i1].x,
+                p2.y, triangle.uvs[i2].x);
+            tu02 = tu_both.0;
+            tu012 = tu_both.1;
+
+            let tv_both = edge_interpolate(
+                p0.y, triangle.uvs[i0].y,
+                p1.y, triangle.uvs[i1].y,
+                p2.y, triangle.uvs[i2].y);
+            tv02 = tv_both.0;
+            tv012 = tv_both.1;
+        },
+        TexturePerspective::Perspective => {
+            let tu_both = edge_interpolate(
+                p0.y, triangle.uvs[i0].x/v0.z,
+                p1.y, triangle.uvs[i1].x/v1.z,
+                p2.y, triangle.uvs[i2].x/v2.z);
+            tu02 = tu_both.0;
+            tu012 = tu_both.1;
+
+            let tv_both = edge_interpolate(
+                p0.y, triangle.uvs[i0].y/v0.z,
+                p1.y, triangle.uvs[i1].y/v1.z,
+                p2.y, triangle.uvs[i2].y/v2.z);
+            tv02 = tv_both.0;
+            tv012 = tv_both.1;
+        }
+    }
 
     // Depending on the user's choice, set normals to either those defined with the model, or ones
     // we compute from the vertexes.
@@ -917,7 +956,21 @@ fn render_triangle(
                     }
                 }
 
-                let texel = triangle.texture.get_pixel(tuscan[x_minus_xl].1, tvscan[x_minus_xl].1);
+                let texel;
+                match user_choices.texture_perspective {
+                    TexturePerspective::Linear => {
+                        texel = triangle.texture.get_texel(
+                            tuscan[x_minus_xl].1,
+                            tvscan[x_minus_xl].1
+                        );
+                    },
+                    TexturePerspective::Perspective => {
+                        texel = triangle.texture.get_texel(
+                            tuscan[x_minus_xl].1/zscan[x_minus_xl].1,
+                            tvscan[x_minus_xl].1/zscan[x_minus_xl].1
+                        );
+                    }
+                }
 
                 canvas.put_pixel(x, y, &texel.multiply_by(intensity).clamp());
             }
@@ -1316,7 +1369,7 @@ fn main() {
     let mut canvas = Canvas::new("Raster 12 (from chapter 14)", CANVAS_WIDTH, CANVAS_HEIGHT);
     let mut depth_buffer = DepthBuffer::new();
 
-    let tex_crate = Texture::new_from_rgb24_file("examples/crate-texture.jpg");
+    let tex_crate = Texture::new_from_rgb24_file("crate-texture.jpg");
 
     let white = Rgb::from_ints(255,255,255);
     canvas.clear_canvas(&white);
