@@ -238,35 +238,35 @@ struct PointLightEntity {
 struct Texture {
     pub width: usize,
     pub height: usize,
-    pub pixels: Vec<Rgb>,
+    pub texels: Vec<Rgb>,
 }
 
 impl Texture {
     /// Creates and returns a new `Texture`. Parameters define the texture's `width` and `height`, and
     /// a `bytestream` of raw color data in RGB24 format. This is passed as a `Vec` of bytes, starting
-    /// with the first pixel's red value, then green value, then blue value, then the second pixel's
-    /// red value, etc. The first pixel is the one at the top-left of the texture image.
+    /// with the first texel's red value, then green value, then blue value, then the second texel's
+    /// red value, etc. The first texel is the one at the top-left of the texture image.
     ///
     /// # Panics
     ///
     /// Panics if the length of `bytestream` is not a multiple of 3.
-    /// Panics if the number of pixels in `bytestream` is not equal to `width` * `height`.
+    /// Panics if the number of texels in `bytestream` is not equal to `width` * `height`.
     pub fn new_from_bytestream(width: usize, height: usize, bytestream: Vec<u8>) -> Self {
 
-        let mut pixels = Vec::<Rgb>::new();
+        let mut texels = Vec::<Rgb>::new();
 
         for b in bytestream.chunks(3) {
             if b.len() != 3 { panic!("Texture data incomplete or corrupt"); }
-            pixels.push(Rgb { red: b[0] as f64, green: b[1] as f64, blue: b[2] as f64 } );
+            texels.push(Rgb { red: b[0] as f64, green: b[1] as f64, blue: b[2] as f64 } );
         }
 
-        if pixels.len() != width * height {
-            panic!(format!("Expected {} pixels of texture data, but only {} found in texture file",
-                width * height, pixels.len()
+        if texels.len() != width * height {
+            panic!(format!("Expected {} texels of texture data, but only {} found in texture file",
+                width * height, texels.len()
             ));
         }
 
-        Texture { width: width, height: height, pixels: pixels }
+        Texture { width: width, height: height, texels: texels }
     }
 
 
@@ -284,7 +284,7 @@ impl Texture {
             );
         let mut decoder = jpeg_decoder::Decoder::new(BufReader::new(file));
 
-        let pixels = decoder.decode().expect(&format!("Texture `{}` failed to decode", filename)
+        let texels = decoder.decode().expect(&format!("Texture `{}` failed to decode", filename)
             );
 
         let metadata = decoder.info().unwrap();
@@ -292,7 +292,7 @@ impl Texture {
             panic!("A texture was not in the expected RGB24 format");
         }
 
-        Texture::new_from_bytestream(metadata.width as usize, metadata.height as usize, pixels)
+        Texture::new_from_bytestream(metadata.width as usize, metadata.height as usize, texels)
     }
 
 
@@ -305,11 +305,11 @@ impl Texture {
     pub fn get_texel(&self, u: f64, v: f64) -> Rgb {
         if (u < 0.0) | (u > 1.0) | (v < 0.0) | (v > 1.0) {
             panic!(
-                "Tried to access a texture pixel with a coordinate outside the range 0.0 to 1.0"
+                "Tried to access a texture texel with a coordinate outside the range 0.0 to 1.0"
             );
         }
 
-        self.pixels.get(
+        self.texels.get(
             ((u * (self.width-1) as f64).round() as usize) +
             ((v * (self.height-1) as f64).round() as usize) * self.width
         ).unwrap().clone()
