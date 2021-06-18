@@ -1452,7 +1452,7 @@ fn main() {
             &tex_crate,
             [Point::new(0.0, 0.0), Point::new(1.0, 1.0), Point::new(0.0, 1.0)]
         ),
-        Triangle::new([4, 5, 1], [
+        Triangle::new([1, 0, 4], [
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
@@ -1460,13 +1460,13 @@ fn main() {
             &tex_crate,
             [Point::new(0.0, 0.0), Point::new(1.0, 0.0), Point::new(1.0, 1.0)]
         ),
-        Triangle::new([4, 1, 0], [
+        Triangle::new([1, 4, 5], [
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
             ],
             &tex_crate,
-            [Point::new(0.0, 1.0), Point::new(1.0, 1.0), Point::new(0.0, 1.0)] // WARNING 1st point copied from JavaScript but looks wrong
+            [Point::new(0.0, 0.0), Point::new(1.0, 1.0), Point::new(0.0, 1.0)]
         ),
         Triangle::new([2, 6, 7], [
                 Vector4::new(0.0, -1.0, 0.0, 0.0),
