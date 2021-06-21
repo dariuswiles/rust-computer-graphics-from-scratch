@@ -320,7 +320,8 @@ impl Texture {
 
 
     /// Returns the `Rgb` color at the given `u` and `v` coordinates. The ranges of both are
-    /// between 0.0 and 1.0, with 0.0, 0.0 being the top-left of the texture.
+    /// between 0.0 and 1.0, with 0.0, 0.0 being the top-left of the texture. If `bilinear` is
+    /// `true`, performs bilinear filtering.
     ///
     /// # Panics
     ///
