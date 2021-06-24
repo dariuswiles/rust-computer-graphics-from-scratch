@@ -483,8 +483,8 @@ fn create_scene() -> Scene {
 /// the window.
 fn main() {
 
-    let mut canvas = Canvas::new("Chapter 5 Arbitrary camera position", CANVAS_WIDTH,
-                                 CANVAS_HEIGHT);
+    let mut canvas = Canvas::new("Chapter 5 Arbitrary camera position, and triangles",
+        CANVAS_WIDTH, CANVAS_HEIGHT);
     let scene = create_scene();
 
 
