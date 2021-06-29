@@ -7,8 +7,8 @@
 use std::iter::Iterator;
 use std::vec::Vec;
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
-#[allow(unused_imports)]
-use crate::vector_math::*;
+use crate::vector_math::{Vector3};
+#[allow(dead_code)]
 mod vector_math;
 
 const CANVAS_WIDTH: usize = 600;
