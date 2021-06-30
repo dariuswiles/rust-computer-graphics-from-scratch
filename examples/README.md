@@ -43,7 +43,7 @@ example builds on the code of the previous example, except were noted.
 | raster_12_bilinear.rs | Chapter 14 | Add bilinear filters to raster_12.* |
 | raster_12_bilinear_mipmap.rs | Chapter 14 | Add bilinear filters and mipmapping to raster_12.* |
 
-\* Use command-line options to select different behaviors. Use ``cargo run --example example_name help` to view the options available for a particular example.
+\* Use command-line options to select different behaviors. Use `cargo run --example example_name help` to view the options available for a particular example.
 
 
 All examples rely on **vector_math** to define vector and matrix objects and associated math
