@@ -1,9 +1,9 @@
 //! Implementation of pseudocode from chapter 6 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This is code for the last section, where interpolation functionality is moved into a
-//! separate function.
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! This is code for the last section of chapter 6. Interpolation code from the function to draw
+//! lines is moved into a separate function so it can be reused.
 
 use std::vec::Vec;
 use std::iter::Iterator;

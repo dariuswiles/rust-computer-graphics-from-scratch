@@ -5,6 +5,8 @@
 //! as discussed in various sections of chapter 5.
 //!
 //! I am not affiliated with Gabriel or his book in any way.
+//!
+//! BUG This implementation is incomplete and does not produce any transparent effect.
 
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
 use crate::vector_math::{Matrix3x3, Vector3};

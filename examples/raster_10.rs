@@ -1,9 +1,9 @@
 //! Implementation of pseudocode from chapter 12 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This code implements a simple depth buffer, and renders objects with filled sides (rather
-//! than the wireframes used in prior examples).
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! This code implements a simple depth buffer and renders objects with filled sides (rather
+//! than the wireframes used in prior examples).
 
 use std::iter::Iterator;
 use std::mem;

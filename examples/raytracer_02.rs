@@ -1,8 +1,9 @@
 //! Implementation of pseudocode from the first part of chapter 3 of Gabriel Gambetta's
-//! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/) book.
-//! It adds diffuse lighting to the scene.
+//! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! Renders three spheres, and a much larger sphere to act as a surface, using ambient, point and
+//! direction light sources that together produce diffuse lighting.
 
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
 use crate::vector_math::Vector3;

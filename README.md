@@ -37,6 +37,11 @@ fn main() {
 }
 ```
 
+The center of the canvas is the origin, i.e., where `x = 0, y = 0`. `x` ranges from `-width/2`
+at the furthest left to `width/2 - 1` at the furthest right. `y` ranges from `-height/2` at the
+bottom to `height/2 - 1` at the top. `color` is passed as an `Rgb` object formed from separate red,
+green and blue values.
+
 
 ## License
 

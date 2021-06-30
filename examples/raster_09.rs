@@ -1,8 +1,8 @@
 //! Implementation of pseudocode from chapter 11 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This code implements clipping.
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! This code implements clipping.
 
 use std::iter::Iterator;
 use std::vec::Vec;

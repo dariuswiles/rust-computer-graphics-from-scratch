@@ -1,8 +1,8 @@
 //! Implementation of bilinear filtering based on chapter 14 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This code enhances raster_12 with bilinear filtering.
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! This code enhances raster_12 with bilinear filtering.
 
 use jpeg_decoder;
 use std::env;

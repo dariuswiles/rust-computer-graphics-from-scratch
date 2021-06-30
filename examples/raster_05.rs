@@ -1,8 +1,8 @@
 //! Implementation of pseudocode from chapter 9 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This code uses perspective projection techniques to draw a wireframe cube.
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! This code uses perspective projection techniques to draw a wireframe cube.
 
 use std::iter::Iterator;
 use std::vec::Vec;

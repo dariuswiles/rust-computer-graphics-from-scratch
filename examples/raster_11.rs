@@ -1,11 +1,11 @@
 //! Implementation of pseudocode from chapter 13 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This code implements flat, Gouraud and Phong shading algorithms in conjunction with
+//! book. I am not affiliated with Gabriel or his book in any way.
+//!
+//! This code implements flat, Gouraud and Phong shading algorithms in conjunction with
 //! diffuse and/or specular lighting, and normals can be generated automatically from model
 //! vertexes or taken from normals provided as part of the models. Options are chosen using command
 //! line options.
-//!
-//! I am not affiliated with Gabriel or his book in any way.
 
 use std::env;
 use std::f64::consts::PI;

@@ -1,6 +1,8 @@
 //! Implementation of concepts from chapter 10 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This code renders two wireframe cubes by modifying the code for the previous example to
+//! book. I am not affiliated with Gabriel or his book in any way.
+//!
+//! This code renders two wireframe cubes by modifying the code for the previous example to
 //! use homogenous coordinates. This allows many of the scaling, rotation and transform operations
 //! that were repeated for each vertex to be combined and cached, improving performance.
 //!
@@ -32,8 +34,6 @@
 //! M_camera needs to be changed when the camera moves.
 //! M_model is different for every instance, though the value for a specific instance typically
 //! doesn't change unless the instance moves in world space.
-//!
-//! I am not affiliated with Gabriel or his book in any way.
 
 use std::iter::Iterator;
 use std::vec::Vec;

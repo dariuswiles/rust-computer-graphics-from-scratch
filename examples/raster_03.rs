@@ -1,8 +1,8 @@
 //! Implementation of pseudocode from chapter 7 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This is code displays wireframe and filled triangles.
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! This code displays wireframe and filled triangles.
 
 use std::mem;
 use std::iter::Iterator;

@@ -1,9 +1,9 @@
 //! Extends the implementation based on the second part of chapter 4 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book with very basic bump mapping. It produces more of a textured look than a real bump
-//! map.
+//! book with very basic bump mapping. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! Rudimentary attempt at bump mapping. It uses an algorithm to produce a textured pattern on
+//! the smaller spheres.
 
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
 use crate::vector_math::{Matrix3x3, Vector3};

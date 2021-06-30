@@ -1,8 +1,8 @@
 //! Implementation of pseudocode from chapter 8 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This is code displays a filled triangles with interpolated shading.
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! This code displays filled triangles using interpolated shading.
 
 use std::mem;
 use std::iter::Iterator;

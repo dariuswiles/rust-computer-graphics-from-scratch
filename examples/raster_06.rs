@@ -1,8 +1,8 @@
 //! Implementation of pseudocode from chapter 10 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This code renders a wireframe cube that is constructed from 12 triangles.
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! This code renders a wireframe cube that is constructed from 12 triangles.
 
 use std::iter::Iterator;
 use std::vec::Vec;

@@ -1,9 +1,8 @@
 //! Implementation of pseudocode from chapter 6 of Gabriel Gambetta's
 //! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
-//! book. This code implements the first sections of that chapter, where the line drawing is
-//! performed in a monolithic function.
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! This code implements the first sections of chapter 6 to draw lines.
 
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
 #[allow(dead_code)]

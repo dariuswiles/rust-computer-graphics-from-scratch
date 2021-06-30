@@ -1,6 +1,9 @@
 //! Implementation of pseudocode from chapter 2 of Gabriel Gambetta's
-//! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/) book. I am not
-//! affiliated with Gabriel or his book in any way.
+//! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
+//! book. I am not affiliated with Gabriel or his book in any way.
+//!
+//! This example is the first step in implementing a basic ray tracer. It renders three spheres
+//! against a white background.
 
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
 use crate::vector_math::Vector3;
@@ -33,8 +36,8 @@ struct SphereEntity {
     color: Rgb,
 }
 
-/// Translates a point on the 2D canvas, passed in the `x` and `y` parameters, to a `Vector3` that goes from the
-/// camera to that point.
+/// Translates a point on the 2D canvas, passed in the `x` and `y` parameters, to a `Vector3` that
+/// goes from the camera to that point.
 fn canvas_to_viewport(x: f64, y: f64) -> Vector3 {
     Vector3::new(
         x * VIEWPORT_WIDTH / CANVAS_WIDTH as f64,
@@ -44,15 +47,17 @@ fn canvas_to_viewport(x: f64, y: f64) -> Vector3 {
 }
 
 
-/// Returns the color of the closest sphere by extending the `direction` vector provided. Only considers spheres within
-/// the range `t_min` and `t_max`, which are measured in world units. If no sphere intersects `direction`, the
-/// `background_color` specified in the `scene` passed is returned.
+/// Returns the color of the closest sphere by extending the `direction` vector provided. Only
+/// considers spheres within the range `t_min` and `t_max`, which are measured in world units. If
+/// no sphere intersects `direction`, the `background_color` specified in the `scene` passed is
+/// returned.
 fn trace_ray(origin: &Vector3, direction: &Vector3, t_min: f64, t_max: f64, scene: &Scene) -> Rgb {
     let mut closest_t = f64::INFINITY;
     let mut closest_sphere = Option::<&SphereEntity>::None;
 
     for scene_ent in scene.entities.iter() {
-        #[allow(irrefutable_let_patterns)] // "If" always true because we `SceneEntity` only defines `Sphere`.
+        // "If" always true because `SceneEntity` only defines `Sphere` in this example.
+        #[allow(irrefutable_let_patterns)]
         if let SceneEntity::Sphere(s) = scene_ent {
             let (t1, t2) = intersect_ray_sphere(origin, direction, s);
             if (t_min < t1) & (t1 < t_max) & (t1 < closest_t) {
@@ -73,10 +78,11 @@ fn trace_ray(origin: &Vector3, direction: &Vector3, t_min: f64, t_max: f64, scen
     }
 }
 
-/// Determines if a line drawn from `origin` along `direction` intersects sphere `s`. If so, the distances from the
-/// origin at which the line intersects the surface of the sphere are returned as a tuple. If the line only intersects
-/// once, the same distance is returned twice in the tuple. If the line does not intersect at all, a tuple with two
-/// elements set to positive infinity is returned.
+/// Determines if a line drawn from `origin` along `direction` intersects sphere `s`. If so, the
+/// distances from the origin at which the line intersects the surface of the sphere are returned
+/// as a tuple. If the line only intersects once, the same distance is returned twice in the tuple.
+/// If the line does not intersect at all, a tuple with two elements set to positive infinity is
+/// returned.
 fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity) -> (f64, f64) {
     let r = s.radius;
     let center_origin = origin.subtract(&s.center);
@@ -96,8 +102,9 @@ fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity)
 }
 
 
-/// Creates a scene that includes viewport width and height (expressed in world space coordinates), a default
-/// background color to be used if no other pixel value is set, and a vector of entity objects to display.
+/// Creates a scene that includes viewport width and height (expressed in world space coordinates),
+/// a default background color to be used if no other pixel value is set, and a vector of entity
+/// objects to display.
 fn create_scene() -> Scene {
     Scene {
         viewport_width: VIEWPORT_WIDTH,
@@ -124,8 +131,9 @@ fn create_scene() -> Scene {
 }
 
 
-/// Creates a window and a scene of entities to render. Loops over every pixel in the window canvas to determine the
-/// correct color based on the scene's entities, and then displays the result in the window.
+/// Creates a window and a scene of entities to render. Loops over every pixel in the window canvas
+/// to determine the correct color based on the scene's entities, and then displays the result in
+/// the window.
 fn main() {
     let mut canvas = Canvas::new("Raytracer 01 (from chapter 2)", CANVAS_WIDTH, CANVAS_HEIGHT);
 

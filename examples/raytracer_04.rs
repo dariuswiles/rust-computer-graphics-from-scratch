@@ -1,8 +1,8 @@
 //! Implementation of pseudocode from the first part of chapter 4 of Gabriel Gambetta's
-//! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/) book.
-//! It adds shadows to the scene.
+//! [Computer Graphics from Scratch](https://gabrielgambetta.com/computer-graphics-from-scratch/)
+//! book. I am not affiliated with Gabriel or his book in any way.
 //!
-//! I am not affiliated with Gabriel or his book in any way.
+//! Add shadows to the scene.
 
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
 use crate::vector_math::Vector3;
