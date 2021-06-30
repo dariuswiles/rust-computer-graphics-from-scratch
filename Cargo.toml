@@ -3,7 +3,7 @@ name = "rust-computer-graphics-from-scratch"
 version = "0.1.0"
 authors = ["Darius Wiles <github@dariuswiles.com>"]
 edition = "2018"
-license = "0BSD"
+license = "Unlicense"
 
 [lib]
 crate-type = ["lib"]

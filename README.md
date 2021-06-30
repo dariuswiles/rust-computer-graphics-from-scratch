@@ -40,8 +40,8 @@ fn main() {
 
 ## License
 
-The source code is licensed under the BSD Zero Clause License. See [LICENSE](LICENSE) or
-https://opensource.org/licenses/0BSD.
+The source code is licensed under the **Unlicense** license. See [LICENSE](LICENSE) or
+https://unlicense.org.
 
 The _*crate-texture.jpg*_ image is taken from
 [Gabriel Gambetta's GitHub repository](https://github.com/ggambetta/computer-graphics-from-scratch) and he has released
@@ -52,4 +52,4 @@ https://creativecommons.org/licenses/by/4.0/
 
 ## Contribution
 
-You agree that any contribution you submit for inclusion will be licensed under the BSD Zero Clause License.
+You agree that any contribution you submit for inclusion will be licensed under the **Unlicense** license.
