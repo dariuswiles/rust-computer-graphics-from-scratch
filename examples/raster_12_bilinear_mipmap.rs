@@ -21,8 +21,9 @@ const CANVAS_HEIGHT: usize = 600;
 const VIEWPORT_WIDTH: f64 = 1.0;
 const VIEWPORT_HEIGHT: f64 = 1.0;
 const DISTANCE_FROM_CAMERA_TO_VIEWPORT: f64 = 1.0;
-// const TEXTURE_FILENAME: &str = "crate-texture-mipmap-false-color.jpg";
-const TEXTURE_FILENAME: &str = "crate-texture-mipmap-checkerboard.jpg";
+const TEXTURE_FILENAME_CRATE: &str = "crate-texture-mipmap.jpg";
+const TEXTURE_FILENAME_FALSE_COLOR: &str = "crate-texture-mipmap-false-color.jpg";
+const TEXTURE_FILENAME_CHECKERBOARD: &str = "crate-texture-mipmap-checkerboard.jpg";
 const TEXTURE_MIPMAP_WIDTHS: [usize; 10] = [600, 300, 150, 75, 38, 19, 8, 4, 2, 1];
 
 /// User-selectable lighting choices.
@@ -69,6 +70,14 @@ enum TextureMipmap {
     Mipmap,
 }
 
+/// User-selectable choice for which texture to use.
+#[derive(Copy, Clone, Debug, PartialEq)]
+enum TextureSource {
+    Crate,
+    Checkerboard,
+    FalseColor,
+}
+
 /// A structure to hold all user-selectable option choices.
 #[derive(Copy, Clone, Debug, PartialEq)]
 struct UserChoices {
@@ -78,6 +87,7 @@ struct UserChoices {
     texture_perspective: TexturePerspective,
     texture_mapping: TextureMapping,
     texture_mipmap: TextureMipmap,
+    texture_source: TextureSource,
 }
 
 
@@ -459,15 +469,16 @@ impl Texture {
 /// line containing the name used to invoke this command, as passed in `cmd_name`.
 fn help_information(cmd_name: &str) -> String {
     format!(
-r#"Usage: {} [lighting] [shading] [normals] [depth] [texture]
+r#"Usage: {} [lighting] [shading] [normals] [depth] [mipmap] [source]
 Where lighting is one of: diffuse specular both
 and shading is one of: flat gouraud phong
 and normals is one of: computed model
 and depth calculation used for textures is one of: linear perspective
 and texture mapping is one of: nearest bilinear
-and texture mipmapping is one of: nomipmap mipmap
+and mipmap is one of: nomipmap mipmap
+and texture source is one of: crate checkerboard false_color
 
-The defaults are: both phong model perspective bilinear mipmap
+The defaults are: both phong model perspective bilinear mipmap crate
 "#, cmd_name)
 }
 
@@ -491,6 +502,7 @@ fn parse_command_line_arguments() -> Result<UserChoices, ()>{
     let mut arg_depth = TexturePerspective::Perspective;
     let mut arg_texture_map = TextureMapping::Bilinear;
     let mut arg_mipmap = TextureMipmap::Mipmap;
+    let mut arg_texture_source = TextureSource::Crate;
 
     for arg in args {
         match arg.to_lowercase().as_str() {
@@ -509,6 +521,9 @@ fn parse_command_line_arguments() -> Result<UserChoices, ()>{
             "bilinear" => arg_texture_map = TextureMapping::Bilinear,
             "nomipmap" => arg_mipmap = TextureMipmap::NoMipmap,
             "mipmap" => arg_mipmap = TextureMipmap::Mipmap,
+            "crate" => arg_texture_source = TextureSource::Crate,
+            "checkerboard" => arg_texture_source = TextureSource::Checkerboard,
+            "false_color" => arg_texture_source = TextureSource::FalseColor,
             _ => arg_unrecognized = true,
         }
     }
@@ -522,7 +537,7 @@ fn parse_command_line_arguments() -> Result<UserChoices, ()>{
 
     Result::Ok(UserChoices { lighting: arg_lighting, shading: arg_shading, normals: arg_normals,
         texture_perspective: arg_depth, texture_mapping: arg_texture_map,
-        texture_mipmap: arg_mipmap, }
+        texture_mipmap: arg_mipmap, texture_source: arg_texture_source }
     )
 }
 
@@ -1540,8 +1555,22 @@ fn main() {
         chapter 14)", CANVAS_WIDTH, CANVAS_HEIGHT);
     let mut depth_buffer = DepthBuffer::new();
 
-    let tex_crate = Texture::new_from_rgb24_file(&TEXTURE_FILENAME,
-        (&TEXTURE_MIPMAP_WIDTHS).to_vec());
+
+    let tex_image;
+    match user_choices.texture_source {
+        TextureSource::Crate => {
+            tex_image = Texture::new_from_rgb24_file(&TEXTURE_FILENAME_CRATE,
+                (&TEXTURE_MIPMAP_WIDTHS).to_vec());
+        }
+        TextureSource::Checkerboard => {
+            tex_image = Texture::new_from_rgb24_file(&TEXTURE_FILENAME_CHECKERBOARD,
+                (&TEXTURE_MIPMAP_WIDTHS).to_vec());
+        }
+        TextureSource::FalseColor => {
+            tex_image = Texture::new_from_rgb24_file(&TEXTURE_FILENAME_FALSE_COLOR,
+                (&TEXTURE_MIPMAP_WIDTHS).to_vec());
+        }
+    }
 
     let white = Rgb::from_ints(255,255,255);
     canvas.clear_canvas(&white);
@@ -1565,7 +1594,7 @@ fn main() {
                 Vector4::new(0.0, 0.0, 1.0, 0.0),
                 Vector4::new(0.0, 0.0, 1.0, 0.0)
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 0.0), Point::new(1.0, 1.0)]
         ),
         Triangle::new([0, 2, 3], [
@@ -1573,7 +1602,7 @@ fn main() {
                 Vector4::new(0.0, 0.0, 1.0, 0.0),
                 Vector4::new(0.0, 0.0, 1.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 1.0), Point::new(0.0, 1.0)]
         ),
         Triangle::new([4, 0, 3], [
@@ -1581,7 +1610,7 @@ fn main() {
                 Vector4::new(1.0, 0.0, 0.0, 0.0),
                 Vector4::new(1.0, 0.0, 0.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 0.0), Point::new(1.0, 1.0)]
         ),
         Triangle::new([4, 3, 7], [
@@ -1589,7 +1618,7 @@ fn main() {
                 Vector4::new(1.0, 0.0, 0.0, 0.0),
                 Vector4::new(1.0, 0.0, 0.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 1.0), Point::new(0.0, 1.0)]
         ),
         Triangle::new([5, 4, 7], [
@@ -1597,7 +1626,7 @@ fn main() {
                 Vector4::new(0.0, 0.0, -1.0, 0.0),
                 Vector4::new(0.0, 0.0, -1.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 0.0), Point::new(1.0, 1.0)]
      ),
         Triangle::new([5, 7, 6], [
@@ -1605,7 +1634,7 @@ fn main() {
                 Vector4::new(0.0, 0.0, -1.0, 0.0),
                 Vector4::new(0.0, 0.0, -1.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 1.0), Point::new(0.0, 1.0)]
         ),
         Triangle::new([1, 5, 6], [
@@ -1613,7 +1642,7 @@ fn main() {
                 Vector4::new(-1.0, 0.0, 0.0, 0.0),
                 Vector4::new(-1.0, 0.0, 0.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 0.0), Point::new(1.0, 1.0)]
         ),
         Triangle::new([1, 6, 2], [
@@ -1621,7 +1650,7 @@ fn main() {
                 Vector4::new(-1.0, 0.0, 0.0, 0.0),
                 Vector4::new(-1.0, 0.0, 0.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 1.0), Point::new(0.0, 1.0)]
         ),
         Triangle::new([1, 0, 4], [
@@ -1629,7 +1658,7 @@ fn main() {
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 0.0), Point::new(1.0, 1.0)]
         ),
         Triangle::new([1, 4, 5], [
@@ -1637,7 +1666,7 @@ fn main() {
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
                 Vector4::new(0.0, 1.0, 0.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 1.0), Point::new(0.0, 1.0)]
         ),
         Triangle::new([2, 6, 7], [
@@ -1645,7 +1674,7 @@ fn main() {
                 Vector4::new(0.0, -1.0, 0.0, 0.0),
                 Vector4::new(0.0, -1.0, 0.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 0.0), Point::new(1.0, 1.0)]
         ),
         Triangle::new([2, 7, 3], [
@@ -1653,7 +1682,7 @@ fn main() {
                 Vector4::new(0.0, -1.0, 0.0, 0.0),
                 Vector4::new(0.0, -1.0, 0.0, 0.0),
             ],
-            &tex_crate,
+            &tex_image,
             [Point::new(0.0, 0.0), Point::new(1.0, 1.0), Point::new(0.0, 1.0)]
         ),
     ];
