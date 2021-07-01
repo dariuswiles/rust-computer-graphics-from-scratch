@@ -28,7 +28,7 @@ example builds on the code of the previous example, except were noted.
 | raytracer_bump.rs | Chapter 5 | Rudimentary attempt at bump mapping. It uses an algorithm to produce a textured pattern on the smaller spheres. |
 | raytracer_transparency.rs | Chapter 5 | **Incomplete** attempt to extend raytracer_06 to render transparent objects. |
 | raytracer_triangle.rs | Chapter 5 | Extend raytracer_06 to render triangles as well as spheres. |
-| raster_01.rs | Chapter 6 | Draw lines using interpolation. |
+| raster_01.rs | Chapter 6 | The first step in implementing rasterization. Draw lines using interpolation. |
 | raster_02.rs | Chapter 6 | Separate interpolation code into a separate function so it can be reused. |
 | raster_03.rs | Chapter 7 | Display wireframe and filled triangles. |
 | raster_04.rs | Chapter 8 | Display filled triangles using interpolated shading. |
