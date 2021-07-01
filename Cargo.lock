@@ -600,6 +600,7 @@ version = "0.1.0"
 dependencies = [
  "jpeg-decoder",
  "minifb",
+ "num_cpus",
 ]
 
 [[package]]
