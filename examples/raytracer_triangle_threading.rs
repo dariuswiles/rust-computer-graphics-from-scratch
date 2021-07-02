@@ -5,18 +5,17 @@
 //! - triangle entities; and
 //! - multi-threading
 //! as discussed in various sections of chapter 5.
-//!
-//! BUG On a 4 core Intel CPU, the current threading code takes about 1.3 seconds to run versus
-//!     1.1 seconds for a single-threaded implementation. Debugging confirms work is being
-//!     distributed among threads, so either something else is wrong or there's too much
-//!     overhead in parceling out work an a per-pixel basis (e.g., maybe a work unit should be a
-//!     complete scan line).
+//
+// On a 4-core CPU, this threading implementation results in a 3x speed increase versus the
+// single-threaded implementation. Work is passed to worker threads as scanlines, i.e., a worker
+// processes an entire scanline before sending the results back to the main thread.
 
 use rust_computer_graphics_from_scratch::canvas::{Canvas, Rgb};
 use crate::vector_math::{Matrix3x3, Vector3};
 #[allow(dead_code)]
 mod vector_math;
 
+use core::ops::Range;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{SystemTime};
@@ -120,7 +119,7 @@ impl TriangleEntity {
 #[derive(Clone, Debug)]
 struct Job {
     x: i32,
-    y: i32,
+    y_range: Range<i32>,
 }
 
 #[derive(Clone, Debug)]
@@ -130,7 +129,6 @@ struct JobResult {
     color: Rgb,
 }
 
-
 struct Worker {}
 
 impl Worker {
@@ -138,10 +136,14 @@ impl Worker {
         id: usize,
         closure: Arc<F>,
         job_assignment_rx: Arc<Mutex<mpsc::Receiver<Option<Job>>>>,
-        result_tx: Arc<Mutex<mpsc::Sender<JobResult>>>,
+        result_tx: Arc<Mutex<mpsc::Sender<Vec<JobResult>>>>,
     ) -> Self
     where
-        F: Fn(usize, Arc<Mutex<mpsc::Receiver<Option<Job>>>>, Arc<Mutex<mpsc::Sender<JobResult>>>)
+        F: Fn(
+            usize,
+            Arc<Mutex<mpsc::Receiver<Option<Job>>>>,
+            Arc<Mutex<mpsc::Sender<Vec<JobResult>>>>
+        )
             -> () + Send + Sync + 'static
     {
         let _ = Some(thread::spawn(move || { closure(id, job_assignment_rx, result_tx); } ));
@@ -562,15 +564,21 @@ fn main() {
 
             match job {
                 Some(j) => {
-                    let direction = &camera_rotation.multiply_vector(
-                        &canvas_to_viewport(j.x as f64, j.y as f64)
-                    );
-                    let color = trace_ray(&camera_position, &direction, 1.0, f64::INFINITY,
-                                RECURSION_LIMIT, &scene);
+                    let mut results = Vec::new();
+
+                    for y in j.y_range {
+                        let direction = &camera_rotation.multiply_vector(
+                            &canvas_to_viewport(j.x as f64, y as f64)
+                        );
+                        let color = trace_ray(&camera_position, &direction, 1.0, f64::INFINITY,
+                                    RECURSION_LIMIT, &scene);
+
+                        results.push(JobResult { x: j.x, y: y, color: color });
+                    }
 
                     result_tx
                         .lock().unwrap()
-                        .send(JobResult { x: j.x, y: j.y, color: color })
+                        .send(results)
                         .unwrap_or_else(|_| panic!("Worker unable to send results"));
                 }
                 None => {
@@ -596,28 +604,28 @@ fn main() {
 
     let cw = CANVAS_WIDTH as i32;
     let ch = CANVAS_HEIGHT as i32;
-    let pixel_count = cw * ch;
 
     // Send all jobs via a channel. Each job will be retrieved by the next free worker.
-    for x in -cw/2 .. cw/2 {
-        for y in -ch/2 .. ch/2 {
-            let new_job = Job {
-                x: x,
-                y: y,
-            };
+    for x in -cw/2..cw/2 {
+        let new_job = Job {
+            x: x,
+            y_range: -ch/2..ch/2,
+        };
 
-            work_assignment_tx
-                .send(Some(new_job))
-                .expect("Failed to send new job to thread workers");
-        }
+        work_assignment_tx
+            .send(Some(new_job))
+            .expect("Failed to send new job to thread workers");
     }
 
     // Collect the results from all the jobs. Although this code sends and retrieves jobs in
     // separate loops, this can be interleaved.
-    for _ in 0..pixel_count {
-        let r = results_channel_rx.recv().expect("Failed to receive");
-//         println!("Received completed job data: {}, {}, {:?}", r.x, r.y, r.color);
-        canvas.put_pixel(r.x, r.y, &r.color.clamp());
+    for _ in 0..CANVAS_HEIGHT {
+        let results = results_channel_rx.recv().expect("Failed to receive");
+
+        for r in results {
+//             println!("Received completed job data: {}, {}, {:#?}", r.x, r.y, r.color);
+            canvas.put_pixel(r.x, r.y, &r.color.clamp());
+        }
     }
 
     for _ in workers {
