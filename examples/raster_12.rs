@@ -1517,8 +1517,8 @@ fn main() {
     let s_z = 1.0 / f64::sqrt(5.0);
     let s_xy = 2.0 / f64::sqrt(5.0);
     let camera = Camera {
-        position: Vector4::new(-3.0, 1.0, 2.0, 1.0),
-        orientation: Matrix4x4::new_oy_rotation_matrix(-30.0),
+        position: Vector4::new(-0.4, 2.8, 0.0, 1.0),
+        orientation: Matrix4x4::new_oy_rotation_matrix(0.0),
         clipping_planes: [
             Plane { normal: Vector4::new(0.0, 0.0, 1.0, 0.0), distance: -1.0 },  // Near
             Plane { normal: Vector4::new(s_xy, 0.0, s_z, 0.0), distance: 0.0 },  // Left
