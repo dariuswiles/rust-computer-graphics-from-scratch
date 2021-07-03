@@ -40,4 +40,10 @@ The "crate-texture-mipmap.jpg" image is derived from Gabriel's "crate-texture.jp
 released under the same license.
 
 The "crate-texture-mipmap-checkerboard.jpg" and "crate-texture-mipmap-false-color.jpg" images are
-not based on Gabriel's work. They are released under the same license for consistency.
+my original images and not based on Gabriel's work. They are released under the same license for
+consistency.
+
+The "medieval_wood_diff_1k.jpg" texture and associated "medieval_wood_nor_gl_1k.jpg" normal map are
+from the https://polyhaven.com/ website and are released under a Creative Commons "CC0 1.0"
+license, which can be found at:
+https://creativecommons.org/publicdomain/zero/1.0/
