@@ -261,9 +261,9 @@ impl Texture {
         }
 
         if texels.len() != width * height {
-            panic!(format!("Expected {} texels of texture data, but only {} found in texture file",
+            panic!("Expected {} texels of texture data, but only {} found in texture file",
                 width * height, texels.len()
-            ));
+            );
         }
 
         Texture { width: width, height: height, texels: texels }

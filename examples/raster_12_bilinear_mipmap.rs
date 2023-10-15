@@ -312,7 +312,7 @@ impl Texture {
 
         let metadata = decoder.info().unwrap();
         if metadata.pixel_format != jpeg_decoder::PixelFormat::RGB24 {
-            panic!(format!("Texture {} was not in the expected RGB24 format", filename));
+            panic!("Texture {} was not in the expected RGB24 format", filename);
         }
 
         let mut texels = Vec::<Rgb>::new();
@@ -323,10 +323,10 @@ impl Texture {
         }
 
         if texels.len() != metadata.width as usize * metadata.height as usize {
-            panic!(format!(
+            panic!(
                 "{} texels were read from texture file {}, but {} were expected",
                 texels.len(), filename, metadata.width * metadata.height
-            ));
+            );
         }
 
         if ((mipmap_widths.len() == 1) & (metadata.width != metadata.height)) |
@@ -334,8 +334,8 @@ impl Texture {
                 (mipmap_widths.get(0).unwrap() + mipmap_widths.get(1).unwrap()))
             )
         {
-            panic!(format!("Only square textures are supported, but a mipmap in texture {} is not
-                square", filename));
+            panic!("Only square textures are supported, but a mipmap in texture {} is not
+                square", filename);
         }
 
         let mut current_u = 0;
