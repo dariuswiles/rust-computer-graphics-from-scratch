@@ -14,7 +14,7 @@ rather than refer to my code.
 
 The following table lists the examples in this directory in the order they are presented in the
 Computer Graphics from Scratch book. Except for the switch from ray tracing to rasterizing, each
-example builds on the code of the previous example, except were noted.
+example builds on the code of the previous example, except where noted.
 
 
 | Example Name | Book Section | Summary |
