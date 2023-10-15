@@ -370,7 +370,7 @@ impl Vector4 {
     /// # Panics
     ///
     /// Panics if `w` is non-zero because it makes no sense to try to determine the magnitude of a
-    /// point, only a vector. A homogeneous coordinates is a vector if `w` = 0; it's a point
+    /// point, only a vector. A homogeneous coordinate is a vector if `w` = 0; it's a point
     /// otherwise.
     pub fn magnitude(&self) -> f64 {
         if self.w != 0.0 {
@@ -428,14 +428,14 @@ fn run_tests() {
 
     // Vector4 tests
 
-    let n = Vector4::new(0.0, 3.0, 4.0, 2.0);
-    let o = Vector4::new(3.1, 2.2, 1.3, 4.4);
+    let n = Vector4::new(0.0, 3.0, 4.0, 0.0);
+    let o = Vector4::new(3.1, 2.2, 1.3, 0.0);
 
     let n_mag = n.magnitude();
-    assert_eq!(n_mag, 2.5);
+    assert_eq!(n_mag, 5.0);
 
     let o_mag = o.magnitude();
-    assert_eq!(o_mag, 0.9130595193909394);
+    assert_eq!(o_mag, 4.017461885320134);
 
 
     // Matrix math tests
