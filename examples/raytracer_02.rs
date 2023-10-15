@@ -18,8 +18,6 @@ const DISTANCE_FROM_CAMERA_TO_VIEWPORT: f64 = 1.0;
 
 #[derive(Clone, Debug)]
 struct Scene {
-    viewport_width: f64,
-    viewport_height: f64,
     background_color: Rgb,
     entities: Vec<SceneEntity>,
 }
@@ -171,8 +169,6 @@ fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity)
 /// background color to be used if no other pixel value is set, and a vector of entity objects to display.
 fn create_scene() -> Scene {
     Scene {
-        viewport_width: VIEWPORT_WIDTH,
-        viewport_height: VIEWPORT_HEIGHT,
         background_color: Rgb::from_ints(255, 255, 255),     // White
         entities: vec!(
             SceneEntity::Sphere(SphereEntity{

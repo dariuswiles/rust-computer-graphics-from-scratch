@@ -20,8 +20,6 @@ const TRACE_EPSILON: f64 = f64::EPSILON*1000000.0;
 
 #[derive(Clone, Debug)]
 struct Scene {
-    viewport_width: f64,
-    viewport_height: f64,
     background_color: Rgb,
     entities: Vec<SceneEntity>,
 }
@@ -422,8 +420,6 @@ fn intersect_ray_sphere(origin: &Vector3, direction: &Vector3, s: &SphereEntity)
 /// objects to display.
 fn create_scene() -> Scene {
     Scene {
-        viewport_width: VIEWPORT_WIDTH,
-        viewport_height: VIEWPORT_HEIGHT,
         background_color: Rgb::from_ints(0, 0, 0),     // Black
         entities: vec!(
             SceneEntity::Sphere(SphereEntity{
