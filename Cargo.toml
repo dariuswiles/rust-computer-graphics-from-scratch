@@ -9,9 +9,9 @@ license = "Unlicense"
 crate-type = ["lib"]
 
 [dependencies]
-jpeg-decoder = "0.1.22"
-minifb = "0.19.3"
-num_cpus = "1.13"
+jpeg-decoder = "0.3"
+minifb = "0.25"
+num_cpus = "1.16"
 
 
 [[example]]
